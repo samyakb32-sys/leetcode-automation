@@ -32,7 +32,7 @@ matching the provided starter code (no imports beyond typing/collections/etc. if
 /** Generates and fixes LeetCode solutions using an NVIDIA NIM-hosted model. */
 class NvidiaSolver(
     private val apiKey: String,
-    private val model: String = "meta/llama-3.1-70b-instruct",
+    private val model: String = "meta/llama-3.3-70b-instruct",
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val http = OkHttpClient.Builder()

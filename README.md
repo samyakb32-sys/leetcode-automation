@@ -35,7 +35,7 @@ app/src/main/java/com/leetcodeautomation/
      browser's cookies while logged in to leetcode.com
      (`LEETCODE_SESSION`, `csrftoken`).
    - **NVIDIA API key** — from [build.nvidia.com](https://build.nvidia.com).
-   - Model name (defaults to `meta/llama-3.1-70b-instruct`) and
+   - Model name (defaults to `meta/llama-3.3-70b-instruct`) and
      max fix attempts (defaults to 5).
 3. Turn on **Streak Automation** and set:
    - **Solve time** — hour:minute the automation fires each day.

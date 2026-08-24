@@ -14,7 +14,7 @@ data class Settings(
     val leetcodeSession: String = "",
     val csrfToken: String = "",
     val nvidiaApiKey: String = "",
-    val aiModel: String = "meta/llama-3.1-70b-instruct",
+    val aiModel: String = "meta/llama-3.3-70b-instruct",
     val maxFixAttempts: Int = 5,
     // Streak automation: run automatically at solveHour:solveMinute, every repeatEveryDays
     // day(s), solving problemsPerRun problems (today's daily challenge first, then backupSlugs).
@@ -48,7 +48,7 @@ class SettingsRepository(private val context: Context) {
             leetcodeSession = prefs[Keys.SESSION].orEmpty(),
             csrfToken = prefs[Keys.CSRF].orEmpty(),
             nvidiaApiKey = prefs[Keys.NVIDIA_KEY].orEmpty(),
-            aiModel = prefs[Keys.MODEL] ?: "meta/llama-3.1-70b-instruct",
+            aiModel = prefs[Keys.MODEL] ?: "meta/llama-3.3-70b-instruct",
             maxFixAttempts = prefs[Keys.MAX_ATTEMPTS] ?: 5,
             streakEnabled = prefs[Keys.STREAK_ENABLED] ?: false,
             solveHour = prefs[Keys.SOLVE_HOUR] ?: 8,

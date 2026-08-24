@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -31,8 +30,6 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VpnKey
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,13 +54,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leetcodeautomation.data.Settings
-
-// Confirmed live on build.nvidia.com's catalog (free endpoint available) as of this writing.
-private val MODELS = listOf(
-    "meta/llama-3.1-70b-instruct",
-    "meta/llama-3.1-8b-instruct",
-    "meta/llama-3.2-1b-instruct",
-)
 
 @Composable
 fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
@@ -274,9 +264,16 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
 
             item {
                 SettingsCard(title = "AI Settings", icon = Icons.Default.Memory) {
-                    FieldLabel("AI model")
-                    Spacer(Modifier.height(6.dp))
-                    ModelDropdown(model) { model = it }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Dot(NvidiaGreenBright)
+                        Text(
+                            "Using a free NVIDIA AI model automatically — nothing to pick.",
+                            color = OnSurfaceVariant,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                    AdvancedModelField(model) { model = it }
 
                     Spacer(Modifier.height(16.dp))
 
@@ -470,35 +467,55 @@ private fun HelpField(
     }
 }
 
+/**
+ * Hidden by default — most people should never need this. Free-text rather than a fixed
+ * dropdown, since NVIDIA models get renamed/deprecated over time and a hardcoded list goes
+ * stale (this app shipped with one that was already scheduled for deprecation).
+ */
 @Composable
-private fun ModelDropdown(selected: String, onSelect: (String) -> Unit) {
+private fun AdvancedModelField(value: String, onChange: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Column {
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(SurfaceContainerLowest)
-                .border(1.dp, OutlineVariant, RoundedCornerShape(8.dp))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = { expanded = true },
+                    onClick = { expanded = !expanded },
                 )
-                .padding(horizontal = 12.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(top = 8.dp, bottom = 4.dp),
         ) {
-            Text(selected, color = OnSurface, fontFamily = JetBrainsMono, fontSize = 13.sp)
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = OnSurfaceVariant)
+            Text("Advanced: change AI model", color = NvidiaGreenBright, fontSize = 12.sp)
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = NvidiaGreenBright,
+            )
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            MODELS.forEach { m ->
-                DropdownMenuItem(text = { Text(m, fontFamily = JetBrainsMono, fontSize = 13.sp) }, onClick = {
-                    onSelect(m)
-                    expanded = false
-                })
-            }
+        if (expanded) {
+            Text(
+                "Only change this if NVIDIA discontinues the current model. Find valid IDs at " +
+                    "build.nvidia.com — open a model page and copy the id shown in its code sample.",
+                color = OnSurfaceVariant,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+            OutlinedTextField(
+                value = value,
+                onValueChange = onChange,
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = SurfaceContainerLowest,
+                    unfocusedContainerColor = SurfaceContainerLowest,
+                    focusedBorderColor = NvidiaGreenBright,
+                    unfocusedBorderColor = OutlineVariant,
+                    focusedTextColor = OnSurface,
+                    unfocusedTextColor = OnSurface,
+                ),
+                textStyle = androidx.compose.ui.text.TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp),
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
