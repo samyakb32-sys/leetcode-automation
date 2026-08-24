@@ -1,4 +1,4 @@
-# LeetCode Automation
+# Reverse LeetCode
 
 An Android app whose job is to keep your LeetCode streak alive on its own.
 It runs in the background on a schedule you set (time of day, how many

@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,9 +29,9 @@ fun AppTopBar(onSettingsClick: () -> Unit) {
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Terminal, contentDescription = null, tint = NvidiaGreenBright)
+            Icon(Icons.Default.Autorenew, contentDescription = null, tint = NvidiaGreenBright)
             Text(
-                "LC_AUTOMATOR",
+                "REVERSE_LEETCODE",
                 color = NvidiaGreenBright,
                 fontFamily = JetBrainsMono,
                 fontWeight = FontWeight.SemiBold,

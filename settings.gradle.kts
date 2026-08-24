@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "LeetCodeAutomation"
+rootProject.name = "ReverseLeetCode"
 include(":app")

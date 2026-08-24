@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Reverse/retry loop, in the app's blue accent -->
+    <group
+        android:translateX="27"
+        android:translateY="27"
+        android:scaleX="2.25"
+        android:scaleY="2.25">
+        <path android:pathData="M12,6v3l4,-4l-4,-4v3c-4.42,0 -8,3.58 -8,8c0,1.57 0.46,3.03 1.24,4.26L6.7,14.8C6.25,13.97 6,13.02 6,12C6,8.69 8.69,6 12,6z M18.76,7.74L17.3,9.2C17.74,10.04 18,10.98 18,12c0,3.31 -2.69,6 -6,6v-3l-4,4l4,4v-3c4.42,0 8,-3.58 8,-8C20,10.43 19.54,8.97 18.76,7.74z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="0"
+                    android:startY="0"
+                    android:endX="24"
+                    android:endY="24"
+                    android:startColor="#60A5FA"
+                    android:endColor="#2563EB" />
+            </aapt:attr>
+        </path>
+    </group>
+
+    <!-- Code bracket, in the app's orange accent -->
+    <group
+        android:translateX="34"
+        android:translateY="34"
+        android:scaleX="1.667"
+        android:scaleY="1.667">
+        <path android:pathData="M9.4,16.6L4.8,12l4.6,-4.6L8,6l-6,6l6,6L9.4,16.6z M14.6,16.6L19.2,12l-4.6,-4.6L16,6l6,6l-6,6L14.6,16.6z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="0"
+                    android:startY="0"
+                    android:endX="24"
+                    android:endY="24"
+                    android:startColor="#FFC24D"
+                    android:endColor="#FFA116" />
+            </aapt:attr>
+        </path>
+    </group>
+</vector>

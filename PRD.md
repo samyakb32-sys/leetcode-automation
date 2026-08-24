@@ -1,4 +1,4 @@
-# PRD: LeetCode Automation (Android)
+# PRD: Reverse LeetCode (Android)
 
 ## 1. Summary
 An Android app whose sole purpose is protecting the user's LeetCode streak.
