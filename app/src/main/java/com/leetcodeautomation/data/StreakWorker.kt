@@ -36,11 +36,12 @@ class StreakWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
 
         if (targets.isEmpty()) return Result.failure()
 
+        val language = SolveLanguage.fromSlug(settings.submissionLanguage)
         val solved = mutableListOf<String>()
         val failed = mutableListOf<String>()
         for (slug in targets) {
             val outcome = runCatching {
-                pipeline.run(slug, settings.maxFixAttempts) { /* no live UI while backgrounded */ }
+                pipeline.run(slug, settings.maxFixAttempts, language) { /* no live UI while backgrounded */ }
             }
             if (outcome.getOrNull()?.result?.accepted == true) solved.add(slug) else failed.add(slug)
         }

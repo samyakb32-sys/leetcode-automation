@@ -11,20 +11,21 @@ class Pipeline(
     suspend fun run(
         titleSlug: String,
         maxFixAttempts: Int,
+        language: SolveLanguage = SolveLanguage.PYTHON3,
         onStep: suspend (PipelineStep) -> Unit,
     ): PipelineStep {
-        val problem = leetcode.fetchProblem(titleSlug)
-        var solution = solver.solve(problem.title, problem.contentHtml, problem.starterCode)
+        val problem = leetcode.fetchProblem(titleSlug, language.langSlug)
+        var solution = solver.solve(problem.title, problem.contentHtml, problem.starterCode, language)
 
         var lastStep: PipelineStep? = null
         for (attempt in 1..maxFixAttempts) {
-            val result = leetcode.submitSolution(problem.titleSlug, problem.questionId, solution.code)
+            val result = leetcode.submitSolution(problem.titleSlug, problem.questionId, solution.code, language.langSlug)
             val step = PipelineStep(attempt, solution, result)
             onStep(step)
             lastStep = step
 
             if (result.accepted || attempt == maxFixAttempts) break
-            solution = solver.fix(problem.title, solution.code, result.errorSummary)
+            solution = solver.fix(problem.title, solution.code, result.errorSummary, language)
         }
         return lastStep!!
     }

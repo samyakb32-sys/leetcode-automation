@@ -43,7 +43,7 @@ class LeetCodeClient(
         }
     }
 
-    suspend fun fetchProblem(titleSlug: String): Problem = withContext(Dispatchers.IO) {
+    suspend fun fetchProblem(titleSlug: String, langSlug: String = "python3"): Problem = withContext(Dispatchers.IO) {
         val query = """
             query questionData(${'$'}titleSlug: String!) {
               question(titleSlug: ${'$'}titleSlug) {
@@ -80,7 +80,7 @@ class LeetCodeClient(
             val snippets = question["codeSnippets"] as? kotlinx.serialization.json.JsonArray
             snippets?.forEach { el ->
                 val obj = el.jsonObject
-                if (obj["langSlug"]?.jsonPrimitive?.contentOrNull == "python3") {
+                if (obj["langSlug"]?.jsonPrimitive?.contentOrNull == langSlug) {
                     starterCode = obj["code"]?.jsonPrimitive?.contentOrNull.orEmpty()
                 }
             }

@@ -20,6 +20,8 @@ data class Settings(
     val customApiBaseUrl: String = "",
     val customApiKey: String = "",
     val maxFixAttempts: Int = 5,
+    // Which language the AI writes solutions in and submits to LeetCode.
+    val submissionLanguage: String = SolveLanguage.PYTHON3.langSlug,
     // Streak automation: run automatically at solveHour:solveMinute, every repeatEveryDays
     // day(s), solving problemsPerRun problems (today's daily challenge first, then backupSlugs).
     val streakEnabled: Boolean = false,
@@ -40,6 +42,7 @@ class SettingsRepository(private val context: Context) {
         val CUSTOM_BASE_URL = stringPreferencesKey("custom_api_base_url")
         val CUSTOM_API_KEY = stringPreferencesKey("custom_api_key")
         val MAX_ATTEMPTS = intPreferencesKey("max_fix_attempts")
+        val SUBMISSION_LANGUAGE = stringPreferencesKey("submission_language")
         val STREAK_ENABLED = booleanPreferencesKey("streak_enabled")
         val SOLVE_HOUR = intPreferencesKey("solve_hour")
         val SOLVE_MINUTE = intPreferencesKey("solve_minute")
@@ -58,6 +61,7 @@ class SettingsRepository(private val context: Context) {
             customApiBaseUrl = prefs[Keys.CUSTOM_BASE_URL].orEmpty(),
             customApiKey = prefs[Keys.CUSTOM_API_KEY].orEmpty(),
             maxFixAttempts = prefs[Keys.MAX_ATTEMPTS] ?: 5,
+            submissionLanguage = prefs[Keys.SUBMISSION_LANGUAGE] ?: SolveLanguage.PYTHON3.langSlug,
             streakEnabled = prefs[Keys.STREAK_ENABLED] ?: false,
             solveHour = prefs[Keys.SOLVE_HOUR] ?: 8,
             solveMinute = prefs[Keys.SOLVE_MINUTE] ?: 0,
@@ -76,6 +80,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.CUSTOM_BASE_URL] = settings.customApiBaseUrl
             prefs[Keys.CUSTOM_API_KEY] = settings.customApiKey
             prefs[Keys.MAX_ATTEMPTS] = settings.maxFixAttempts
+            prefs[Keys.SUBMISSION_LANGUAGE] = settings.submissionLanguage
             prefs[Keys.STREAK_ENABLED] = settings.streakEnabled
             prefs[Keys.SOLVE_HOUR] = settings.solveHour
             prefs[Keys.SOLVE_MINUTE] = settings.solveMinute

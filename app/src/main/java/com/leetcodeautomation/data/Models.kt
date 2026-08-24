@@ -1,5 +1,15 @@
 package com.leetcodeautomation.data
 
+/** A submission language the app can solve in. Add more here to support additional languages. */
+enum class SolveLanguage(val langSlug: String, val displayName: String, val promptLabel: String, val fenceTag: String) {
+    PYTHON3("python3", "Python", "Python 3", "python"),
+    CPP("cpp", "C++", "C++17", "cpp");
+
+    companion object {
+        fun fromSlug(slug: String): SolveLanguage = entries.find { it.langSlug == slug } ?: PYTHON3
+    }
+}
+
 data class Problem(
     val questionId: String,
     val title: String,

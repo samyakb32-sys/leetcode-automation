@@ -8,6 +8,7 @@ import com.leetcodeautomation.data.Pipeline
 import com.leetcodeautomation.data.PipelineStep
 import com.leetcodeautomation.data.Settings
 import com.leetcodeautomation.data.SettingsRepository
+import com.leetcodeautomation.data.SolveLanguage
 import com.leetcodeautomation.data.StreakScheduler
 import com.leetcodeautomation.data.hasAiCredential
 import com.leetcodeautomation.data.toSolver
@@ -75,7 +76,8 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
 
                 _uiState.value = _uiState.value.copy(stage = Stage.SOLVING)
 
-                val lastStep = pipeline.run(state.titleSlug, s.maxFixAttempts) { step ->
+                val language = SolveLanguage.fromSlug(s.submissionLanguage)
+                val lastStep = pipeline.run(state.titleSlug, s.maxFixAttempts, language) { step ->
                     _uiState.value = _uiState.value.copy(
                         stage = Stage.SUBMITTING,
                         steps = _uiState.value.steps + step,

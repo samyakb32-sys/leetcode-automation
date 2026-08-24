@@ -19,13 +19,14 @@ import java.util.concurrent.TimeUnit
 
 class SolverException(message: String) : Exception(message)
 
-private const val SYSTEM_PROMPT = """You are an expert competitive programmer. You write correct, efficient
-Python 3 solutions for LeetCode problems that fit the given starter code signature exactly.
+private fun systemPrompt(language: SolveLanguage) = """You are an expert competitive programmer. You write correct, efficient
+${language.promptLabel} solutions for LeetCode problems that fit the given starter code signature exactly.
 Always respond with:
 1. A brief explanation of the approach.
 2. Time and space complexity.
-3. The final code in a single ```python fenced block containing ONLY the completed class/function
-matching the provided starter code (no imports beyond typing/collections/etc. if needed, no test code)."""
+3. The final code in a single ```${language.fenceTag} fenced block containing ONLY the completed class/function
+matching the provided starter code (no extra includes/imports beyond what's needed, no test code, no main function
+unless the starter code already has one)."""
 
 /**
  * Generates and fixes LeetCode solutions via an OpenAI-compatible chat completions API.
@@ -47,13 +48,13 @@ class NvidiaSolver(
         .build()
 
     private fun extractCode(text: String): String {
-        val regex = Regex("```(?:python3?|py)?\\s*\\n(.*?)```", RegexOption.DOT_MATCHES_ALL)
+        val regex = Regex("```(?:\\w+)?\\s*\\n(.*?)```", RegexOption.DOT_MATCHES_ALL)
         val match = regex.find(text)
-            ?: throw SolverException("AI response did not contain a fenced Python code block")
+            ?: throw SolverException("AI response did not contain a fenced code block")
         return match.groupValues[1].trim()
     }
 
-    private suspend fun ask(userPrompt: String): Solution = withContext(Dispatchers.IO) {
+    private suspend fun ask(userPrompt: String, language: SolveLanguage): Solution = withContext(Dispatchers.IO) {
         val payload = buildJsonObject {
             put("model", model)
             put("max_tokens", 4096)
@@ -61,7 +62,7 @@ class NvidiaSolver(
             putJsonArray("messages") {
                 add(buildJsonObject {
                     put("role", "system")
-                    put("content", SYSTEM_PROMPT)
+                    put("content", systemPrompt(language))
                 })
                 add(buildJsonObject {
                     put("role", "user")
@@ -98,7 +99,7 @@ class NvidiaSolver(
         }
     }
 
-    suspend fun solve(title: String, contentHtml: String, starterCode: String): Solution {
+    suspend fun solve(title: String, contentHtml: String, starterCode: String, language: SolveLanguage): Solution {
         val prompt = """
             Solve this LeetCode problem.
 
@@ -107,20 +108,20 @@ class NvidiaSolver(
             Problem statement (HTML):
             $contentHtml
 
-            Starter code (Python 3) — complete it, keep the class/function signature identical:
-            ```python
+            Starter code (${language.promptLabel}) — complete it, keep the class/function signature identical:
+            ```${language.fenceTag}
             $starterCode
             ```
         """.trimIndent()
-        return ask(prompt)
+        return ask(prompt, language)
     }
 
-    suspend fun fix(title: String, previousCode: String, errorSummary: String): Solution {
+    suspend fun fix(title: String, previousCode: String, errorSummary: String, language: SolveLanguage): Solution {
         val prompt = """
             Your previous submission for the LeetCode problem "$title" was rejected by the judge.
 
             Previous code:
-            ```python
+            ```${language.fenceTag}
             $previousCode
             ```
 
@@ -129,7 +130,7 @@ class NvidiaSolver(
 
             Diagnose the bug and provide a corrected, complete solution with the same signature.
         """.trimIndent()
-        return ask(prompt)
+        return ask(prompt, language)
     }
 }
 

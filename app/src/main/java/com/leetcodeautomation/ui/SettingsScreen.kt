@@ -54,6 +54,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leetcodeautomation.data.Settings
+import com.leetcodeautomation.data.SolveLanguage
 
 @Composable
 fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
@@ -64,6 +65,7 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
     var customBaseUrl by remember { mutableStateOf(initial.customApiBaseUrl) }
     var customApiKey by remember { mutableStateOf(initial.customApiKey) }
     var maxAttempts by remember { mutableStateOf(initial.maxFixAttempts) }
+    var submissionLanguage by remember { mutableStateOf(initial.submissionLanguage) }
     var streakEnabled by remember { mutableStateOf(initial.streakEnabled) }
     var solveHour by remember { mutableStateOf(initial.solveHour) }
     var solveMinute by remember { mutableStateOf(initial.solveMinute) }
@@ -79,6 +81,7 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
         customApiBaseUrl = customBaseUrl,
         customApiKey = customApiKey,
         maxFixAttempts = maxAttempts,
+        submissionLanguage = submissionLanguage,
         streakEnabled = streakEnabled,
         solveHour = solveHour,
         solveMinute = solveMinute,
@@ -286,6 +289,14 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
                     )
 
                     Spacer(Modifier.height(16.dp))
+                    FieldLabel("Which language should it write?")
+                    Spacer(Modifier.height(6.dp))
+                    LanguagePicker(
+                        selected = SolveLanguage.fromSlug(submissionLanguage),
+                        onSelect = { submissionLanguage = it.langSlug },
+                    )
+
+                    Spacer(Modifier.height(16.dp))
 
                     FieldLabel("How many tries before giving up?")
                     Spacer(Modifier.height(6.dp))
@@ -472,6 +483,40 @@ private fun HelpField(
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                 Dot(NvidiaGreenBright)
                 Text("Filled in", color = OnSurfaceVariant, fontSize = 11.sp, modifier = Modifier.padding(start = 6.dp))
+            }
+        }
+    }
+}
+
+/**
+ * A small fixed set of languages the app itself supports end-to-end (starter code fetch, AI
+ * prompt, and LeetCode's submission API) — unlike the AI model list, this isn't an external
+ * catalog that goes stale, so a simple toggle is fine here.
+ */
+@Composable
+private fun LanguagePicker(selected: SolveLanguage, onSelect: (SolveLanguage) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        SolveLanguage.entries.forEach { lang ->
+            val active = lang == selected
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (active) NvidiaGreenBright else SurfaceContainerLowest)
+                    .border(1.dp, if (active) NvidiaGreenBright else OutlineVariant, RoundedCornerShape(8.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { onSelect(lang) },
+                    )
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    lang.displayName,
+                    color = if (active) SurfaceContainerLowest else OnSurface,
+                    fontFamily = JetBrainsMono,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp,
+                )
             }
         }
     }
