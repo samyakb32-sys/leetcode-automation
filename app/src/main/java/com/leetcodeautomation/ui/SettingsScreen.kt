@@ -58,11 +58,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leetcodeautomation.data.Settings
 
+// Confirmed live on build.nvidia.com's catalog (free endpoint available) as of this writing.
 private val MODELS = listOf(
-    "nvidia/llama-3.1-nemotron-70b-instruct",
-    "meta/llama3-70b-instruct",
-    "mistralai/mixtral-8x22b-instruct",
-    "nvidia/nemotron-4-340b-instruct",
+    "meta/llama-3.1-70b-instruct",
+    "meta/llama-3.1-8b-instruct",
+    "meta/llama-3.2-1b-instruct",
 )
 
 @Composable
