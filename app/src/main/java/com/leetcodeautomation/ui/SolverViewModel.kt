@@ -4,12 +4,13 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.leetcodeautomation.data.LeetCodeClient
-import com.leetcodeautomation.data.NvidiaSolver
 import com.leetcodeautomation.data.Pipeline
 import com.leetcodeautomation.data.PipelineStep
 import com.leetcodeautomation.data.Settings
 import com.leetcodeautomation.data.SettingsRepository
 import com.leetcodeautomation.data.StreakScheduler
+import com.leetcodeautomation.data.hasAiCredential
+import com.leetcodeautomation.data.toSolver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,8 +55,8 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
         val state = _uiState.value
         val s = state.settings
         if (state.titleSlug.isBlank()) return
-        if (s.leetcodeSession.isBlank() || s.csrfToken.isBlank() || s.nvidiaApiKey.isBlank()) {
-            _uiState.value = state.copy(errorMessage = "Set your LeetCode + NVIDIA credentials in Settings first.")
+        if (s.leetcodeSession.isBlank() || s.csrfToken.isBlank() || !s.hasAiCredential) {
+            _uiState.value = state.copy(errorMessage = "Set your LeetCode + AI credentials in Settings first.")
             return
         }
 
@@ -69,7 +70,7 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             try {
                 val leetcode = LeetCodeClient(s.leetcodeSession, s.csrfToken)
-                val solver = NvidiaSolver(s.nvidiaApiKey, s.aiModel)
+                val solver = s.toSolver()
                 val pipeline = Pipeline(leetcode, solver)
 
                 _uiState.value = _uiState.value.copy(stage = Stage.SOLVING)

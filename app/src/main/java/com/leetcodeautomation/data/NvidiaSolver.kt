@@ -19,8 +19,6 @@ import java.util.concurrent.TimeUnit
 
 class SolverException(message: String) : Exception(message)
 
-private const val NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
-
 private const val SYSTEM_PROMPT = """You are an expert competitive programmer. You write correct, efficient
 Python 3 solutions for LeetCode problems that fit the given starter code signature exactly.
 Always respond with:
@@ -29,11 +27,20 @@ Always respond with:
 3. The final code in a single ```python fenced block containing ONLY the completed class/function
 matching the provided starter code (no imports beyond typing/collections/etc. if needed, no test code)."""
 
-/** Generates and fixes LeetCode solutions using an NVIDIA NIM-hosted model. */
+/**
+ * Generates and fixes LeetCode solutions via an OpenAI-compatible chat completions API.
+ * Defaults to NVIDIA NIM, but [baseUrl] can point at any compatible provider (OpenAI, Groq,
+ * Together AI, etc.) so a user isn't locked into one AI vendor.
+ */
 class NvidiaSolver(
     private val apiKey: String,
     private val model: String = "meta/llama-3.3-70b-instruct",
+    private val baseUrl: String = DEFAULT_BASE_URL,
 ) {
+    companion object {
+        const val DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+    }
+
     private val json = Json { ignoreUnknownKeys = true }
     private val http = OkHttpClient.Builder()
         .readTimeout(120, TimeUnit.SECONDS)
@@ -69,7 +76,7 @@ class NvidiaSolver(
         ).toRequestBody("application/json".toMediaType())
 
         val request = Request.Builder()
-            .url(NVIDIA_BASE_URL)
+            .url(baseUrl)
             .addHeader("Authorization", "Bearer $apiKey")
             .addHeader("Content-Type", "application/json")
             .post(body)
@@ -78,14 +85,14 @@ class NvidiaSolver(
         val resp = http.newCall(request).execute()
         resp.use {
             if (!it.isSuccessful) {
-                throw SolverException("NVIDIA API error: HTTP ${it.code} ${it.body?.string()}")
+                throw SolverException("AI provider error: HTTP ${it.code} ${it.body?.string()}")
             }
             val respBody = it.body?.string().orEmpty()
             val root = json.parseToJsonElement(respBody).jsonObject
             val text = root["choices"]?.jsonArray?.get(0)?.jsonObject
                 ?.get("message")?.jsonObject
                 ?.get("content")?.jsonPrimitive?.contentOrNull
-                ?: throw SolverException("Unexpected NVIDIA API response: $respBody")
+                ?: throw SolverException("Unexpected AI provider response: $respBody")
 
             Solution(code = extractCode(text), explanation = text)
         }
@@ -125,3 +132,14 @@ class NvidiaSolver(
         return ask(prompt)
     }
 }
+
+/** True once the user has supplied *some* AI provider credential (NVIDIA's, or a custom one). */
+val Settings.hasAiCredential: Boolean
+    get() = nvidiaApiKey.isNotBlank() || customApiKey.isNotBlank()
+
+/** Builds a solver using the custom provider if configured, falling back to NVIDIA otherwise. */
+fun Settings.toSolver(): NvidiaSolver = NvidiaSolver(
+    apiKey = customApiKey.ifBlank { nvidiaApiKey },
+    model = aiModel,
+    baseUrl = customApiBaseUrl.ifBlank { NvidiaSolver.DEFAULT_BASE_URL },
+)

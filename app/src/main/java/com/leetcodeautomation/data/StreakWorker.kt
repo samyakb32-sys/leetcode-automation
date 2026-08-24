@@ -20,12 +20,12 @@ class StreakWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
     override suspend fun doWork(): Result {
         val settings = SettingsRepository(applicationContext).load()
         if (!settings.streakEnabled) return Result.success()
-        if (settings.leetcodeSession.isBlank() || settings.csrfToken.isBlank() || settings.nvidiaApiKey.isBlank()) {
+        if (settings.leetcodeSession.isBlank() || settings.csrfToken.isBlank() || !settings.hasAiCredential) {
             return Result.failure()
         }
 
         val leetcode = LeetCodeClient(settings.leetcodeSession, settings.csrfToken)
-        val solver = NvidiaSolver(settings.nvidiaApiKey, settings.aiModel)
+        val solver = settings.toSolver()
         val pipeline = Pipeline(leetcode, solver)
 
         val backups = settings.backupSlugs.split(",").map { it.trim() }.filter { it.isNotEmpty() }

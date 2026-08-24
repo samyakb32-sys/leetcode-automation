@@ -15,6 +15,10 @@ data class Settings(
     val csrfToken: String = "",
     val nvidiaApiKey: String = "",
     val aiModel: String = "meta/llama-3.3-70b-instruct",
+    // Optional: point the app at a different OpenAI-compatible AI provider instead of NVIDIA.
+    // Leave blank to keep using nvidiaApiKey against NVIDIA's endpoint.
+    val customApiBaseUrl: String = "",
+    val customApiKey: String = "",
     val maxFixAttempts: Int = 5,
     // Streak automation: run automatically at solveHour:solveMinute, every repeatEveryDays
     // day(s), solving problemsPerRun problems (today's daily challenge first, then backupSlugs).
@@ -33,6 +37,8 @@ class SettingsRepository(private val context: Context) {
         val CSRF = stringPreferencesKey("csrf_token")
         val NVIDIA_KEY = stringPreferencesKey("nvidia_api_key")
         val MODEL = stringPreferencesKey("ai_model")
+        val CUSTOM_BASE_URL = stringPreferencesKey("custom_api_base_url")
+        val CUSTOM_API_KEY = stringPreferencesKey("custom_api_key")
         val MAX_ATTEMPTS = intPreferencesKey("max_fix_attempts")
         val STREAK_ENABLED = booleanPreferencesKey("streak_enabled")
         val SOLVE_HOUR = intPreferencesKey("solve_hour")
@@ -49,6 +55,8 @@ class SettingsRepository(private val context: Context) {
             csrfToken = prefs[Keys.CSRF].orEmpty(),
             nvidiaApiKey = prefs[Keys.NVIDIA_KEY].orEmpty(),
             aiModel = prefs[Keys.MODEL] ?: "meta/llama-3.3-70b-instruct",
+            customApiBaseUrl = prefs[Keys.CUSTOM_BASE_URL].orEmpty(),
+            customApiKey = prefs[Keys.CUSTOM_API_KEY].orEmpty(),
             maxFixAttempts = prefs[Keys.MAX_ATTEMPTS] ?: 5,
             streakEnabled = prefs[Keys.STREAK_ENABLED] ?: false,
             solveHour = prefs[Keys.SOLVE_HOUR] ?: 8,
@@ -65,6 +73,8 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.CSRF] = settings.csrfToken
             prefs[Keys.NVIDIA_KEY] = settings.nvidiaApiKey
             prefs[Keys.MODEL] = settings.aiModel
+            prefs[Keys.CUSTOM_BASE_URL] = settings.customApiBaseUrl
+            prefs[Keys.CUSTOM_API_KEY] = settings.customApiKey
             prefs[Keys.MAX_ATTEMPTS] = settings.maxFixAttempts
             prefs[Keys.STREAK_ENABLED] = settings.streakEnabled
             prefs[Keys.SOLVE_HOUR] = settings.solveHour

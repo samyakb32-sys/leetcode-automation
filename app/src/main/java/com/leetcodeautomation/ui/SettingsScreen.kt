@@ -61,6 +61,8 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
     var csrf by remember { mutableStateOf(initial.csrfToken) }
     var apiKey by remember { mutableStateOf(initial.nvidiaApiKey) }
     var model by remember { mutableStateOf(initial.aiModel) }
+    var customBaseUrl by remember { mutableStateOf(initial.customApiBaseUrl) }
+    var customApiKey by remember { mutableStateOf(initial.customApiKey) }
     var maxAttempts by remember { mutableStateOf(initial.maxFixAttempts) }
     var streakEnabled by remember { mutableStateOf(initial.streakEnabled) }
     var solveHour by remember { mutableStateOf(initial.solveHour) }
@@ -74,6 +76,8 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
         csrfToken = csrf,
         nvidiaApiKey = apiKey,
         aiModel = model,
+        customApiBaseUrl = customBaseUrl,
+        customApiKey = customApiKey,
         maxFixAttempts = maxAttempts,
         streakEnabled = streakEnabled,
         solveHour = solveHour,
@@ -274,6 +278,12 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
                         )
                     }
                     AdvancedModelField(model) { model = it }
+                    AdvancedProviderFields(
+                        baseUrl = customBaseUrl,
+                        apiKey = customApiKey,
+                        onBaseUrlChange = { customBaseUrl = it },
+                        onApiKeyChange = { customApiKey = it },
+                    )
 
                     Spacer(Modifier.height(16.dp))
 
@@ -505,6 +515,100 @@ private fun AdvancedModelField(value: String, onChange: (String) -> Unit) {
                 value = value,
                 onValueChange = onChange,
                 singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = SurfaceContainerLowest,
+                    unfocusedContainerColor = SurfaceContainerLowest,
+                    focusedBorderColor = NvidiaGreenBright,
+                    unfocusedBorderColor = OutlineVariant,
+                    focusedTextColor = OnSurface,
+                    unfocusedTextColor = OnSurface,
+                ),
+                textStyle = androidx.compose.ui.text.TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/**
+ * Hidden by default. Lets someone swap NVIDIA out entirely for a different OpenAI-compatible
+ * AI service (OpenAI, Groq, Together AI, etc.) by supplying that provider's endpoint + key.
+ * When both are blank, the app keeps using NVIDIA with the API key above.
+ */
+@Composable
+private fun AdvancedProviderFields(
+    baseUrl: String,
+    apiKey: String,
+    onBaseUrlChange: (String) -> Unit,
+    onApiKeyChange: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var keyVisible by remember { mutableStateOf(false) }
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { expanded = !expanded },
+                )
+                .padding(top = 8.dp, bottom = 4.dp),
+        ) {
+            Text("Advanced: use a different AI provider", color = NvidiaGreenBright, fontSize = 12.sp)
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = NvidiaGreenBright,
+            )
+        }
+        if (expanded) {
+            Text(
+                "Only needed if you'd rather use a different AI service instead of NVIDIA. " +
+                    "Must be an OpenAI-compatible chat completions endpoint. Leave both blank to " +
+                    "keep using NVIDIA with the key above.",
+                color = OnSurfaceVariant,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+            FieldLabel("Provider endpoint URL")
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = baseUrl,
+                onValueChange = onBaseUrlChange,
+                singleLine = true,
+                placeholder = { Text("https://api.openai.com/v1/chat/completions", color = OnSurfaceVariant.copy(alpha = 0.5f), fontSize = 12.sp) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = SurfaceContainerLowest,
+                    unfocusedContainerColor = SurfaceContainerLowest,
+                    focusedBorderColor = NvidiaGreenBright,
+                    unfocusedBorderColor = OutlineVariant,
+                    focusedTextColor = OnSurface,
+                    unfocusedTextColor = OnSurface,
+                ),
+                textStyle = androidx.compose.ui.text.TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(12.dp))
+            FieldLabel("Provider API key")
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = apiKey,
+                onValueChange = onApiKeyChange,
+                singleLine = true,
+                placeholder = { Text("Paste it here", color = OnSurfaceVariant.copy(alpha = 0.6f), fontSize = 13.sp) },
+                visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    IconButton(onClick = { keyVisible = !keyVisible }) {
+                        Icon(
+                            if (keyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = "Toggle visibility",
+                            tint = OnSurfaceVariant,
+                        )
+                    }
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = SurfaceContainerLowest,
                     unfocusedContainerColor = SurfaceContainerLowest,

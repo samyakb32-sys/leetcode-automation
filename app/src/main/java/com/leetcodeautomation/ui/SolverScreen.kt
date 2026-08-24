@@ -48,13 +48,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leetcodeautomation.data.PipelineStep
+import com.leetcodeautomation.data.hasAiCredential
 
 @Composable
 fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
     val state by viewModel.uiState.collectAsState()
     val needsSetup = state.settings.leetcodeSession.isBlank() ||
         state.settings.csrfToken.isBlank() ||
-        state.settings.nvidiaApiKey.isBlank()
+        !state.settings.hasAiCredential
 
     Scaffold(containerColor = CanvasBlack, topBar = { AppTopBar(onSettingsClick = onOpenSettings) }) { padding ->
         LazyColumn(
