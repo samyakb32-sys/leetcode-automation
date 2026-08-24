@@ -53,6 +53,14 @@ app/src/main/java/com/leetcodeautomation/
   what was solved/failed. The History/Stats tabs only reflect attempts
   made in the current app session (on-demand Solve runs), not background
   runs; persisting run history across restarts is a future addition.
-- This project wasn't built/verified in this sandbox — outbound access to
-  Google's Maven repo is blocked here. Open it in Android Studio (or CI
-  with normal internet access) to sync dependencies and build.
+- Builds via GitHub Actions (`.github/workflows/build.yml`) since this
+  sandbox can't reach Google's Maven repo to build locally — every push
+  produces a debug APK as a downloadable workflow artifact.
+- **Security**: LeetCode session cookie, CSRF token, and the NVIDIA API
+  key are stored in a plaintext Jetpack DataStore file in app-private
+  storage. `android:allowBackup` is set to `false` so they can't leave
+  the device via `adb backup`/cloud backup, but they're still plaintext
+  at rest — recoverable from a rooted device or a backup-bypassing
+  exploit. Encrypting them (e.g. `androidx.security` `EncryptedSharedPreferences`
+  or Keystore-wrapped values) is a reasonable follow-up hardening step,
+  not yet done here.
