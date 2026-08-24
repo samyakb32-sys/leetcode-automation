@@ -40,14 +40,21 @@ class MainActivity : ComponentActivity() {
                 val state by viewModel.uiState.collectAsState()
                 val context = LocalContext.current
 
-                val permissionLauncher = rememberLauncherForActivityResult(
+                val notificationPermissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestPermission()
                 ) { /* streak automation still runs; the user just won't see result notifications */ }
+                val storagePermissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) { /* saving a proof image just won't work until granted */ }
 
                 LaunchedEffect(Unit) {
                     StreakNotifier.ensureChannel(context)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    // Needed to save proof images pre-scoped-storage; Q+ doesn't require it.
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                        storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                     }
                 }
 
@@ -55,8 +62,8 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.weight(1f, fill = true)) {
                         when (tab) {
                             AppTab.SOLVE -> SolverScreen(viewModel = viewModel, onOpenSettings = { tab = AppTab.SETTINGS })
-                            AppTab.HISTORY -> HistoryScreen(state.steps)
-                            AppTab.STATS -> StatsScreen(state.steps)
+                            AppTab.HISTORY -> HistoryScreen()
+                            AppTab.STATS -> StatsScreen()
                             AppTab.SETTINGS -> SettingsScreen(initial = state.settings, onSave = viewModel::saveSettings)
                         }
                     }

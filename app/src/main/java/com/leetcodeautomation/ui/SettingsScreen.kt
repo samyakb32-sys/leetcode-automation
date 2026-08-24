@@ -3,6 +3,7 @@ package com.leetcodeautomation.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -43,7 +47,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.rememberScrollState
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +60,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.leetcodeautomation.data.AiProvider
 import com.leetcodeautomation.data.Settings
 import com.leetcodeautomation.data.SolveLanguage
 
@@ -62,6 +70,11 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
     var csrf by remember { mutableStateOf(initial.csrfToken) }
     var apiKey by remember { mutableStateOf(initial.nvidiaApiKey) }
     var model by remember { mutableStateOf(initial.aiModel) }
+    var aiProvider by remember { mutableStateOf(initial.aiProvider) }
+    var openaiApiKey by remember { mutableStateOf(initial.openaiApiKey) }
+    var groqApiKey by remember { mutableStateOf(initial.groqApiKey) }
+    var geminiApiKey by remember { mutableStateOf(initial.geminiApiKey) }
+    var anthropicApiKey by remember { mutableStateOf(initial.anthropicApiKey) }
     var customBaseUrl by remember { mutableStateOf(initial.customApiBaseUrl) }
     var customApiKey by remember { mutableStateOf(initial.customApiKey) }
     var maxAttempts by remember { mutableStateOf(initial.maxFixAttempts) }
@@ -78,6 +91,11 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
         csrfToken = csrf,
         nvidiaApiKey = apiKey,
         aiModel = model,
+        aiProvider = aiProvider,
+        openaiApiKey = openaiApiKey,
+        groqApiKey = groqApiKey,
+        geminiApiKey = geminiApiKey,
+        anthropicApiKey = anthropicApiKey,
         customApiBaseUrl = customBaseUrl,
         customApiKey = customApiKey,
         maxFixAttempts = maxAttempts,
@@ -90,7 +108,23 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
         backupSlugs = backupSlugs,
     )
 
-    Scaffold(containerColor = CanvasBlack, topBar = { AppTopBar(onSettingsClick = {}) }) { padding ->
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    Scaffold(
+        containerColor = CanvasBlack,
+        topBar = { AppTopBar(onSettingsClick = {}) },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    containerColor = NvidiaGreenBright,
+                    contentColor = SurfaceContainerLowest,
+                ) {
+                    Text(data.visuals.message, fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+    ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -274,19 +308,59 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Dot(NvidiaGreenBright)
                         Text(
-                            "Using a free NVIDIA AI model automatically — nothing to pick.",
+                            "NVIDIA's free AI works with nothing to pick — switch below only if you'd rather use a provider you already pay for.",
                             color = OnSurfaceVariant,
                             fontSize = 13.sp,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
-                    AdvancedModelField(model) { model = it }
-                    AdvancedProviderFields(
-                        baseUrl = customBaseUrl,
-                        apiKey = customApiKey,
-                        onBaseUrlChange = { customBaseUrl = it },
-                        onApiKeyChange = { customApiKey = it },
+
+                    Spacer(Modifier.height(12.dp))
+                    FieldLabel("AI provider")
+                    Spacer(Modifier.height(6.dp))
+                    ProviderPicker(
+                        selected = AiProvider.fromId(aiProvider),
+                        onSelect = { provider ->
+                            aiProvider = provider.id
+                            if (provider != AiProvider.CUSTOM) model = provider.defaultModel
+                        },
                     )
+
+                    Spacer(Modifier.height(12.dp))
+                    when (val provider = AiProvider.fromId(aiProvider)) {
+                        AiProvider.NVIDIA -> Text(
+                            "Uses the NVIDIA key from \"Connect the AI\" above.",
+                            color = OnSurfaceVariant,
+                            fontSize = 11.sp,
+                        )
+                        AiProvider.CUSTOM -> AdvancedProviderFields(
+                            baseUrl = customBaseUrl,
+                            apiKey = customApiKey,
+                            onBaseUrlChange = { customBaseUrl = it },
+                            onApiKeyChange = { customApiKey = it },
+                        )
+                        else -> ProviderKeyField(
+                            provider = provider,
+                            value = when (provider) {
+                                AiProvider.OPENAI -> openaiApiKey
+                                AiProvider.GROQ -> groqApiKey
+                                AiProvider.GEMINI -> geminiApiKey
+                                AiProvider.ANTHROPIC -> anthropicApiKey
+                                else -> ""
+                            },
+                            onChange = { value ->
+                                when (provider) {
+                                    AiProvider.OPENAI -> openaiApiKey = value
+                                    AiProvider.GROQ -> groqApiKey = value
+                                    AiProvider.GEMINI -> geminiApiKey = value
+                                    AiProvider.ANTHROPIC -> anthropicApiKey = value
+                                    else -> {}
+                                }
+                            },
+                        )
+                    }
+
+                    AdvancedModelField(model) { model = it }
 
                     Spacer(Modifier.height(16.dp))
                     FieldLabel("Which language should it write?")
@@ -329,7 +403,10 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
-                                    onClick = { onSave(currentSettings()) },
+                                    onClick = {
+                                        onSave(currentSettings())
+                                        scope.launch { snackbarHostState.showSnackbar("Settings saved") }
+                                    },
                                 )
                                 .padding(horizontal = 20.dp, vertical = 12.dp),
                         ) {
@@ -485,6 +562,83 @@ private fun HelpField(
                 Text("Filled in", color = OnSurfaceVariant, fontSize = 11.sp, modifier = Modifier.padding(start = 6.dp))
             }
         }
+    }
+}
+
+/**
+ * A small fixed set of AI providers the app knows how to talk to — unlike the model list within
+ * a provider, provider identities/endpoints are stable, so a chip picker is fine here.
+ */
+@Composable
+private fun ProviderPicker(selected: AiProvider, onSelect: (AiProvider) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        AiProvider.entries.forEach { provider ->
+            val active = provider == selected
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (active) NvidiaGreenBright else SurfaceContainerLowest)
+                    .border(1.dp, if (active) NvidiaGreenBright else OutlineVariant, RoundedCornerShape(8.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { onSelect(provider) },
+                    )
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    provider.label,
+                    color = if (active) SurfaceContainerLowest else OnSurface,
+                    fontFamily = JetBrainsMono,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp,
+                )
+            }
+        }
+    }
+}
+
+/** Masked API key field for a specific non-NVIDIA provider, with a short "where to get it" hint. */
+@Composable
+private fun ProviderKeyField(provider: AiProvider, value: String, onChange: (String) -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    Column {
+        FieldLabel("${provider.label} API key")
+        Spacer(Modifier.height(2.dp))
+        Text(provider.keyHint, color = OnSurfaceVariant, fontSize = 11.sp)
+        Spacer(Modifier.height(6.dp))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onChange,
+            singleLine = true,
+            placeholder = { Text("Paste it here", color = OnSurfaceVariant.copy(alpha = 0.6f), fontSize = 13.sp) },
+            visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            trailingIcon = {
+                IconButton(onClick = { visible = !visible }) {
+                    Icon(
+                        if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = "Toggle visibility",
+                        tint = OnSurfaceVariant,
+                    )
+                }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = SurfaceContainerLowest,
+                unfocusedContainerColor = SurfaceContainerLowest,
+                focusedBorderColor = NvidiaGreenBright,
+                unfocusedBorderColor = OutlineVariant,
+                focusedTextColor = OnSurface,
+                unfocusedTextColor = OnSurface,
+            ),
+            textStyle = androidx.compose.ui.text.TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp),
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

@@ -159,6 +159,9 @@ class LeetCodeClient(
     private suspend fun pollSubmission(submissionId: String): SubmissionResult {
         val checkUrl = "https://leetcode.com/submissions/detail/$submissionId/check/"
         val deadline = System.currentTimeMillis() + 60_000
+        // Most judges resolve in 1-3s; poll fast at first and back off so a slow judge doesn't
+        // get hammered with requests.
+        var pollDelayMs = 400L
 
         while (System.currentTimeMillis() < deadline) {
             val resp = withContext(Dispatchers.IO) {
@@ -181,7 +184,8 @@ class LeetCodeClient(
                     totalTestcases = obj["total_testcases"]?.jsonPrimitive?.intOrNull,
                 )
             }
-            delay(1500)
+            delay(pollDelayMs)
+            pollDelayMs = (pollDelayMs + 200).coerceAtMost(1200)
         }
         throw LeetCodeException("Timed out waiting for judge result")
     }

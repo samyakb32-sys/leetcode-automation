@@ -6,7 +6,7 @@ package com.leetcodeautomation.data
  */
 class Pipeline(
     private val leetcode: LeetCodeClient,
-    private val solver: NvidiaSolver,
+    private val solver: AiSolver,
 ) {
     suspend fun run(
         titleSlug: String,

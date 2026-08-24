@@ -19,16 +19,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,17 +38,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leetcodeautomation.data.PipelineStep
+import com.leetcodeautomation.data.ProofImageGenerator
+import com.leetcodeautomation.data.RunHistoryEntry
 import com.leetcodeautomation.data.hasAiCredential
+import kotlinx.coroutines.launch
 
 @Composable
 fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
@@ -68,7 +72,7 @@ fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
             if (needsSetup) {
                 item { SetupNeededBanner(onOpenSettings) }
             }
-            item { TargetProblemCard(state.titleSlug, viewModel::updateSlug, viewModel::solve, state.stage) }
+            item { SolveButtonCard(titleSlug = state.titleSlug, stage = state.stage, onExecute = viewModel::solve) }
             item { ActivePipelineCard(state.stage) }
             item {
                 state.errorMessage?.let {
@@ -81,6 +85,13 @@ fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
                         fontFamily = JetBrainsMono,
                         fontWeight = FontWeight.SemiBold,
                     )
+                    if (state.accepted) {
+                        val lastStep = state.steps.lastOrNull()
+                        if (lastStep != null) {
+                            Spacer(Modifier.height(12.dp))
+                            ProofButton(state.titleSlug, lastStep)
+                        }
+                    }
                 }
             }
             item {
@@ -95,6 +106,53 @@ fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
             }
             items(state.steps.reversed()) { step -> AttemptCard(step) }
         }
+    }
+}
+
+@Composable
+private fun ProofButton(titleSlug: String, lastStep: PipelineStep) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(NvidiaGreenBright.copy(alpha = 0.15f))
+            .border(1.dp, NvidiaGreenBright.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {
+                    scope.launch {
+                        val entry = RunHistoryEntry(
+                            titleSlug = titleSlug,
+                            accepted = lastStep.result.accepted,
+                            statusMsg = lastStep.result.statusMsg,
+                            attempts = lastStep.attempt,
+                            timestampMillis = System.currentTimeMillis(),
+                            fromBackground = false,
+                        )
+                        val uri = ProofImageGenerator.saveToGallery(context, entry)
+                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "image/png"
+                            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(android.content.Intent.createChooser(intent, "Share your proof"))
+                    }
+                },
+            )
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Default.Share, contentDescription = null, tint = NvidiaGreenBright)
+        Text(
+            "SAVE & SHARE PROOF",
+            color = NvidiaGreenBright,
+            fontFamily = JetBrainsMono,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(start = 8.dp),
+        )
     }
 }
 
@@ -133,13 +191,8 @@ private fun SetupNeededBanner(onOpenSettings: () -> Unit) {
 }
 
 @Composable
-private fun TargetProblemCard(
-    slug: String,
-    onSlugChange: (String) -> Unit,
-    onExecute: () -> Unit,
-    stage: Stage,
-) {
-    val running = stage == Stage.EXTRACTING || stage == Stage.SOLVING || stage == Stage.SUBMITTING
+private fun SolveButtonCard(titleSlug: String, stage: Stage, onExecute: () -> Unit) {
+    val running = stage == Stage.PICKING || stage == Stage.EXTRACTING || stage == Stage.SOLVING || stage == Stage.SUBMITTING
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -149,47 +202,21 @@ private fun TargetProblemCard(
             .padding(16.dp),
     ) {
         Text(
-            "Which problem?",
+            "Ready when you are",
             color = NvidiaGreenBright,
             fontFamily = JetBrainsMono,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "Paste the end of a LeetCode URL, e.g. leetcode.com/problems/two-sum → \"two-sum\"",
+            if (running && titleSlug.isNotBlank()) "Working on: $titleSlug"
+            else "It picks a problem for you — today's Daily Challenge, or a backup from Settings.",
             color = OnSurfaceVariant,
             fontSize = 11.sp,
             modifier = Modifier.padding(top = 2.dp),
         )
         Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(SurfaceContainerLowest)
-                .border(1.dp, OutlineVariant, RoundedCornerShape(8.dp))
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Default.Link, contentDescription = null, tint = OnSurfaceVariant)
-            Spacer(Modifier.width(8.dp))
-            Box(modifier = Modifier.weight(1f)) {
-                if (slug.isEmpty()) {
-                    Text("two-sum", color = OnSurfaceVariant.copy(alpha = 0.5f), fontFamily = JetBrainsMono, fontSize = 13.sp)
-                }
-                BasicTextField(
-                    value = slug,
-                    onValueChange = onSlugChange,
-                    singleLine = true,
-                    textStyle = TextStyle(color = OnSurface, fontFamily = JetBrainsMono, fontSize = 13.sp),
-                    cursorBrush = Brush.linearGradient(listOf(NvidiaGreenBright, NvidiaGreenBright)),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-        Spacer(Modifier.height(12.dp))
         val gradient = Brush.horizontalGradient(listOf(NvidiaGreen, SecondaryContainer))
-        val canExecute = !running && slug.isNotBlank()
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -198,7 +225,7 @@ private fun TargetProblemCard(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    enabled = canExecute,
+                    enabled = !running,
                     onClick = onExecute,
                 )
                 .padding(vertical = 14.dp),
@@ -216,7 +243,7 @@ private fun TargetProblemCard(
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                if (running) "WORKING…" else "SOLVE IT",
+                if (running) "WORKING…" else "SOLVE",
                 color = SurfaceContainerLowest,
                 fontFamily = JetBrainsMono,
                 fontWeight = FontWeight.Bold,
@@ -231,6 +258,7 @@ private data class PipelineStageInfo(val label: String, val icon: ImageVector)
 @Composable
 private fun ActivePipelineCard(stage: Stage) {
     val stages = listOf(
+        PipelineStageInfo("Picking a problem", Icons.Default.Shuffle),
         PipelineStageInfo("Reading the problem", Icons.Default.Download),
         PipelineStageInfo("AI is writing a solution", Icons.Default.Memory),
         PipelineStageInfo("Submitting to LeetCode", Icons.Default.CloudUpload),
@@ -238,10 +266,11 @@ private fun ActivePipelineCard(stage: Stage) {
     )
     val activeIndex = when (stage) {
         Stage.IDLE -> -1
-        Stage.EXTRACTING -> 0
-        Stage.SOLVING -> 1
-        Stage.SUBMITTING -> 2
-        Stage.DONE, Stage.ERROR -> 3
+        Stage.PICKING -> 0
+        Stage.EXTRACTING -> 1
+        Stage.SOLVING -> 2
+        Stage.SUBMITTING -> 3
+        Stage.DONE, Stage.ERROR -> 4
     }
 
     Column(

@@ -27,13 +27,9 @@ class StreakWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
         val leetcode = LeetCodeClient(settings.leetcodeSession, settings.csrfToken)
         val solver = settings.toSolver()
         val pipeline = Pipeline(leetcode, solver)
+        val history = RunHistoryStore(applicationContext)
 
-        val backups = settings.backupSlugs.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-        val targets = buildList {
-            runCatching { leetcode.fetchDailyChallengeSlug() }.getOrNull()?.let { add(it) }
-            addAll(backups)
-        }.distinct().take(settings.problemsPerRun.coerceAtLeast(1))
-
+        val targets = ProblemPicker.pickTargets(leetcode, settings.backupSlugs, settings.problemsPerRun)
         if (targets.isEmpty()) return Result.failure()
 
         val language = SolveLanguage.fromSlug(settings.submissionLanguage)
@@ -43,7 +39,18 @@ class StreakWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
             val outcome = runCatching {
                 pipeline.run(slug, settings.maxFixAttempts, language) { /* no live UI while backgrounded */ }
             }
-            if (outcome.getOrNull()?.result?.accepted == true) solved.add(slug) else failed.add(slug)
+            val step = outcome.getOrNull()
+            if (step?.result?.accepted == true) solved.add(slug) else failed.add(slug)
+            history.append(
+                RunHistoryEntry(
+                    titleSlug = slug,
+                    accepted = step?.result?.accepted == true,
+                    statusMsg = step?.result?.statusMsg ?: (outcome.exceptionOrNull()?.message ?: "Failed"),
+                    attempts = step?.attempt ?: 0,
+                    timestampMillis = System.currentTimeMillis(),
+                    fromBackground = true,
+                )
+            )
         }
 
         StreakNotifier.notifyResult(applicationContext, solved, failed)

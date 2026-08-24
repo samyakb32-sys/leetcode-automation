@@ -15,8 +15,13 @@ data class Settings(
     val csrfToken: String = "",
     val nvidiaApiKey: String = "",
     val aiModel: String = "meta/llama-3.3-70b-instruct",
-    // Optional: point the app at a different OpenAI-compatible AI provider instead of NVIDIA.
-    // Leave blank to keep using nvidiaApiKey against NVIDIA's endpoint.
+    // Which AI provider is active (see AiProvider). Defaults to NVIDIA's free endpoint.
+    val aiProvider: String = AiProvider.NVIDIA.id,
+    val openaiApiKey: String = "",
+    val groqApiKey: String = "",
+    val geminiApiKey: String = "",
+    val anthropicApiKey: String = "",
+    // Only used when aiProvider is "custom": any OpenAI-compatible chat completions endpoint.
     val customApiBaseUrl: String = "",
     val customApiKey: String = "",
     val maxFixAttempts: Int = 5,
@@ -39,6 +44,11 @@ class SettingsRepository(private val context: Context) {
         val CSRF = stringPreferencesKey("csrf_token")
         val NVIDIA_KEY = stringPreferencesKey("nvidia_api_key")
         val MODEL = stringPreferencesKey("ai_model")
+        val AI_PROVIDER = stringPreferencesKey("ai_provider")
+        val OPENAI_KEY = stringPreferencesKey("openai_api_key")
+        val GROQ_KEY = stringPreferencesKey("groq_api_key")
+        val GEMINI_KEY = stringPreferencesKey("gemini_api_key")
+        val ANTHROPIC_KEY = stringPreferencesKey("anthropic_api_key")
         val CUSTOM_BASE_URL = stringPreferencesKey("custom_api_base_url")
         val CUSTOM_API_KEY = stringPreferencesKey("custom_api_key")
         val MAX_ATTEMPTS = intPreferencesKey("max_fix_attempts")
@@ -58,6 +68,11 @@ class SettingsRepository(private val context: Context) {
             csrfToken = prefs[Keys.CSRF].orEmpty(),
             nvidiaApiKey = prefs[Keys.NVIDIA_KEY].orEmpty(),
             aiModel = prefs[Keys.MODEL] ?: "meta/llama-3.3-70b-instruct",
+            aiProvider = prefs[Keys.AI_PROVIDER] ?: AiProvider.NVIDIA.id,
+            openaiApiKey = prefs[Keys.OPENAI_KEY].orEmpty(),
+            groqApiKey = prefs[Keys.GROQ_KEY].orEmpty(),
+            geminiApiKey = prefs[Keys.GEMINI_KEY].orEmpty(),
+            anthropicApiKey = prefs[Keys.ANTHROPIC_KEY].orEmpty(),
             customApiBaseUrl = prefs[Keys.CUSTOM_BASE_URL].orEmpty(),
             customApiKey = prefs[Keys.CUSTOM_API_KEY].orEmpty(),
             maxFixAttempts = prefs[Keys.MAX_ATTEMPTS] ?: 5,
@@ -77,6 +92,11 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.CSRF] = settings.csrfToken
             prefs[Keys.NVIDIA_KEY] = settings.nvidiaApiKey
             prefs[Keys.MODEL] = settings.aiModel
+            prefs[Keys.AI_PROVIDER] = settings.aiProvider
+            prefs[Keys.OPENAI_KEY] = settings.openaiApiKey
+            prefs[Keys.GROQ_KEY] = settings.groqApiKey
+            prefs[Keys.GEMINI_KEY] = settings.geminiApiKey
+            prefs[Keys.ANTHROPIC_KEY] = settings.anthropicApiKey
             prefs[Keys.CUSTOM_BASE_URL] = settings.customApiBaseUrl
             prefs[Keys.CUSTOM_API_KEY] = settings.customApiKey
             prefs[Keys.MAX_ATTEMPTS] = settings.maxFixAttempts
