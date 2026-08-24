@@ -1,154 +1,327 @@
 package com.leetcodeautomation.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Gavel
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.leetcodeautomation.data.PipelineStep
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
     val state by viewModel.uiState.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("LeetCode Automation") },
-                actions = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
+    Scaffold(containerColor = CanvasBlack, topBar = { AppTopBar(onSettingsClick = onOpenSettings) }) { padding ->
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = state.titleSlug,
-                    onValueChange = viewModel::updateSlug,
-                    label = { Text("Problem slug, e.g. two-sum") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-                androidx.compose.foundation.layout.Spacer(Modifier.padding(4.dp))
-                Button(onClick = viewModel::solve, enabled = state.stage != Stage.EXTRACTING && state.stage != Stage.SOLVING && state.stage != Stage.SUBMITTING) {
-                    Text("Solve")
+            item { TargetProblemCard(state.titleSlug, viewModel::updateSlug, viewModel::solve, state.stage) }
+            item { ActivePipelineCard(state.stage) }
+            item {
+                state.errorMessage?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, fontFamily = JetBrainsMono)
+                }
+                if (state.stage == Stage.DONE) {
+                    Text(
+                        if (state.accepted) "Pipeline complete — ACCEPTED" else "Pipeline complete — not accepted",
+                        color = if (state.accepted) AcceptedGreen else ErrorRed,
+                        fontFamily = JetBrainsMono,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
-
-            androidx.compose.foundation.layout.Spacer(Modifier.padding(8.dp))
-
-            PipelineTracker(state.stage)
-
-            androidx.compose.foundation.layout.Spacer(Modifier.padding(8.dp))
-
-            state.errorMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
-            }
-
-            if (state.stage == Stage.DONE) {
+            item {
                 Text(
-                    if (state.accepted) "✅ Accepted" else "❌ Not accepted after max attempts",
-                    color = if (state.accepted) AcceptedGreen else ErrorRed,
-                    style = MaterialTheme.typography.titleMedium,
+                    "RECENT ATTEMPTS",
+                    color = OnSurfaceVariant,
+                    fontFamily = JetBrainsMono,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp),
                 )
             }
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(top = 12.dp),
-            ) {
-                items(state.steps) { step -> AttemptCard(step) }
-            }
+            items(state.steps.reversed()) { step -> AttemptCard(step) }
         }
     }
 }
 
 @Composable
-private fun PipelineTracker(stage: Stage) {
-    val steps = listOf("Extract", "Solve", "Save", "Submit", "Judge")
+private fun TargetProblemCard(
+    slug: String,
+    onSlugChange: (String) -> Unit,
+    onExecute: () -> Unit,
+    stage: Stage,
+) {
+    val running = stage == Stage.EXTRACTING || stage == Stage.SOLVING || stage == Stage.SUBMITTING
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(SurfaceCard)
+            .border(1.dp, NvidiaGreenBright.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+            .padding(16.dp),
+    ) {
+        Text(
+            "TARGET PROBLEM",
+            color = NvidiaGreenBright,
+            fontFamily = JetBrainsMono,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(SurfaceContainerLowest)
+                .border(1.dp, OutlineVariant, RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Default.Link, contentDescription = null, tint = OnSurfaceVariant)
+            Spacer(Modifier.width(8.dp))
+            Box(modifier = Modifier.weight(1f)) {
+                if (slug.isEmpty()) {
+                    Text("two-sum", color = OnSurfaceVariant.copy(alpha = 0.5f), fontFamily = JetBrainsMono, fontSize = 13.sp)
+                }
+                BasicTextField(
+                    value = slug,
+                    onValueChange = onSlugChange,
+                    singleLine = true,
+                    textStyle = TextStyle(color = OnSurface, fontFamily = JetBrainsMono, fontSize = 13.sp),
+                    cursorBrush = Brush.linearGradient(listOf(NvidiaGreenBright, NvidiaGreenBright)),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        val gradient = Brush.horizontalGradient(listOf(NvidiaGreen, SecondaryContainer))
+        val canExecute = !running && slug.isNotBlank()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(50))
+                .background(gradient)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    enabled = canExecute,
+                    onClick = onExecute,
+                )
+                .padding(vertical = 14.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (running) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    color = SurfaceContainerLowest,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = SurfaceContainerLowest)
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                if (running) "RUNNING…" else "EXECUTE",
+                color = SurfaceContainerLowest,
+                fontFamily = JetBrainsMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+            )
+        }
+    }
+}
+
+private data class PipelineStageInfo(val label: String, val icon: ImageVector)
+
+@Composable
+private fun ActivePipelineCard(stage: Stage) {
+    val stages = listOf(
+        PipelineStageInfo("Extracting Problem Data", Icons.Default.Download),
+        PipelineStageInfo("Solving (LLM Inference)", Icons.Default.Memory),
+        PipelineStageInfo("Submit Solution", Icons.Default.CloudUpload),
+        PipelineStageInfo("Await Judgment", Icons.Default.Gavel),
+    )
     val activeIndex = when (stage) {
         Stage.IDLE -> -1
         Stage.EXTRACTING -> 0
         Stage.SOLVING -> 1
-        Stage.SUBMITTING -> 3
-        Stage.DONE, Stage.ERROR -> 4
+        Stage.SUBMITTING -> 2
+        Stage.DONE, Stage.ERROR -> 3
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        steps.forEachIndexed { i, label ->
-            val active = i <= activeIndex
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = if (active) NvidiaGreen.copy(alpha = 0.25f) else SurfaceDark,
-                ),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Text(
-                    label,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(SurfaceCard)
+            .padding(16.dp),
+    ) {
+        Text(
+            "ACTIVE PIPELINE",
+            color = OnSurfaceVariant,
+            fontFamily = JetBrainsMono,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+        )
+        stages.forEachIndexed { i, info ->
+            val complete = i < activeIndex
+            val active = i == activeIndex
+            val pending = i > activeIndex
+            val color = when {
+                complete -> NvidiaGreen
+                active -> SecondaryContainer
+                else -> OutlineVariant
             }
-        }
-        if (stage == Stage.EXTRACTING || stage == Stage.SOLVING || stage == Stage.SUBMITTING) {
-            CircularProgressIndicator(modifier = Modifier.padding(start = 4.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(color),
+                )
+                Spacer(Modifier.width(12.dp))
+                if (active) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = color, strokeWidth = 2.dp)
+                } else {
+                    Icon(info.icon, contentDescription = null, tint = color)
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        info.label,
+                        color = if (pending) OnSurfaceVariant else if (active) SecondaryContainer else OnSurface,
+                        fontFamily = JetBrainsMono,
+                        fontSize = 13.sp,
+                    )
+                    if (active) {
+                        Text("Processing…", color = OnSurfaceVariant, fontFamily = JetBrainsMono, fontSize = 10.sp)
+                    } else if (complete) {
+                        Text("Complete", color = OnSurfaceVariant, fontFamily = JetBrainsMono, fontSize = 10.sp)
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun AttemptCard(step: PipelineStep) {
-    val verdictColor = if (step.result.accepted) AcceptedGreen else ErrorRed
-    Card(
-        colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth(),
+    val accepted = step.result.accepted
+    val chipColor = if (accepted) NvidiaGreen else ErrorRed
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(TerminalBlack)
+            .border(1.dp, OutlineVariant, RoundedCornerShape(12.dp))
+            .padding(12.dp),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text("Attempt ${step.attempt}", style = MaterialTheme.typography.titleSmall)
-                Text(step.result.statusMsg, color = verdictColor, style = MaterialTheme.typography.labelLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(chipColor.copy(alpha = 0.1f))
+                        .border(1.dp, chipColor, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    Icon(
+                        if (accepted) Icons.Default.CheckCircle else Icons.Default.Error,
+                        contentDescription = null,
+                        tint = chipColor,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        step.result.statusMsg.uppercase(),
+                        color = chipColor,
+                        fontFamily = JetBrainsMono,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                Text("attempt ${step.attempt}", color = OnSurfaceVariant, fontFamily = JetBrainsMono, fontSize = 12.sp)
             }
-            androidx.compose.foundation.layout.Spacer(Modifier.padding(4.dp))
-            Text(
-                step.solution.code.lines().take(6).joinToString("\n"),
-                style = MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
-            )
+        }
+        if (!accepted) {
+            Spacer(Modifier.height(8.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CanvasBlack, RoundedCornerShape(8.dp))
+                    .border(1.dp, OutlineVariant, RoundedCornerShape(8.dp))
+                    .padding(8.dp),
+            ) {
+                Text(
+                    step.result.errorSummary,
+                    color = OnSurfaceVariant,
+                    fontFamily = JetBrainsMono,
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp,
+                )
+            }
         }
     }
 }

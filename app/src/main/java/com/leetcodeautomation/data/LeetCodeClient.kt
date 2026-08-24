@@ -95,6 +95,37 @@ class LeetCodeClient(
         }
     }
 
+    /** Slug of today's LeetCode "Daily Coding Challenge" — the default target for streak runs. */
+    suspend fun fetchDailyChallengeSlug(): String = withContext(Dispatchers.IO) {
+        val query = """
+            query questionOfToday {
+              activeDailyCodingChallengeQuestion {
+                question { titleSlug }
+              }
+            }
+        """.trimIndent()
+
+        val payload = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject { put("query", query) },
+        )
+
+        val resp = http.newCall(
+            request("https://leetcode.com/graphql", payload, "POST").build()
+        ).execute()
+
+        resp.use {
+            if (!it.isSuccessful) throw LeetCodeException("Failed to fetch daily challenge: HTTP ${it.code}")
+            val body = it.body?.string().orEmpty()
+            val root = json.parseToJsonElement(body).jsonObject
+            root["data"]?.jsonObject
+                ?.get("activeDailyCodingChallengeQuestion")?.jsonObject
+                ?.get("question")?.jsonObject
+                ?.get("titleSlug")?.jsonPrimitive?.contentOrNull
+                ?: throw LeetCodeException("No daily challenge found in response")
+        }
+    }
+
     suspend fun submitSolution(
         titleSlug: String,
         questionId: String,

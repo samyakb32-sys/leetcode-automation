@@ -1,19 +1,28 @@
 # PRD: LeetCode Automation (Android)
 
 ## 1. Summary
-An Android app that automates solving LeetCode problems end-to-end: pull a
-problem by slug, have an AI model generate a solution, submit it to
-LeetCode, and — if it's rejected — feed the judge's error/testcase back to
-the AI to fix the code and resubmit, repeating until it's Accepted or a max
-attempt count is hit.
+An Android app whose sole purpose is protecting the user's LeetCode streak.
+It runs on a schedule the user sets — a time of day, how many problems to
+solve, and how often to repeat — and for each run it pulls a problem
+(today's Daily Challenge by default), has an AI model generate a solution,
+submits it, and — if it's rejected — feeds the judge's error/testcase back
+to the AI to fix the code and resubmit, repeating until it's Accepted or a
+max attempt count is hit. It also supports solving a specific slug on
+demand from the Solve tab.
 
 ## 2. Problem statement
-Manually re-typing failed submissions, reading judge output, and iterating
-on a fix is repetitive. This app closes the loop automatically and gives
-the user a live view of each attempt.
+Missing a day breaks a LeetCode streak, and manually re-typing failed
+submissions, reading judge output, and iterating on a fix is repetitive.
+This app closes the loop automatically in the background — the user sets
+it once and it keeps the streak alive without them opening the app.
 
 ## 3. Goals
-- Solve a given LeetCode problem slug with zero manual coding.
+- **Primary: never miss a streak day.** Run automatically in the
+  background at a user-configured time, without the app being open.
+- Let the user configure: solve time (hour:minute), problems to solve per
+  run, and how often the automation repeats (every N days).
+- Solve a given LeetCode problem slug on demand with zero manual coding
+  (Solve tab), for ad-hoc use outside the schedule.
 - Show the pipeline state in real time: Extract → Solve → Save → Submit →
   Judge.
 - On failure, automatically retry with AI-generated fixes up to a
@@ -48,15 +57,26 @@ performance rather than for contest/interview use.
 
 ## 6. Functional requirements
 - **Settings screen**: store LeetCode session cookie, CSRF token, NVIDIA
-  API key, model name, and max fix attempts (persisted via DataStore).
-- **Solve screen**: slug input, Solve button, pipeline status tracker,
-  attempt log, final verdict banner.
-- **LeetCode client**: fetch problem by slug (GraphQL), submit solution,
-  poll submission result.
+  API key, model name, max fix attempts, and streak-automation config
+  (enabled, solve time, problems per run, repeat-every-N-days, backup
+  slugs) — persisted via DataStore.
+- **Streak automation**: a background job (WorkManager) scheduled per the
+  user's config. Each run solves today's Daily Challenge first, then
+  configured backup slugs, up to `problemsPerRun`, using the same
+  solve→submit→fix pipeline as the Solve tab. Reschedules itself on the
+  configured interval and survives reboots.
+- **Solve tab**: slug input, Execute button, pipeline status tracker,
+  attempt log, final verdict banner — for on-demand runs outside the
+  schedule.
+- **History / Stats tabs**: lightweight in-session view of past attempts
+  and accepted/attempted counts.
+- **LeetCode client**: fetch problem by slug (GraphQL), fetch today's Daily
+  Challenge slug, submit solution, poll submission result.
 - **AI solver**: call NVIDIA NIM's OpenAI-compatible chat completions API
   to solve and to fix; parse code out of a fenced code block.
 - **Pipeline**: coordinates the above and emits one `PipelineStep` per
-  attempt for the UI to render live.
+  attempt for the UI to render live (skipped when running headless in the
+  background).
 
 ## 7. Non-functional requirements
 - Credentials stored locally only (DataStore), never transmitted anywhere

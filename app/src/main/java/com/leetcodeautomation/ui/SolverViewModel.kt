@@ -9,6 +9,7 @@ import com.leetcodeautomation.data.Pipeline
 import com.leetcodeautomation.data.PipelineStep
 import com.leetcodeautomation.data.Settings
 import com.leetcodeautomation.data.SettingsRepository
+import com.leetcodeautomation.data.StreakScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +46,7 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             settingsRepo.save(settings)
             _uiState.value = _uiState.value.copy(settings = settings)
+            StreakScheduler.schedule(getApplication(), settings)
         }
     }
 
