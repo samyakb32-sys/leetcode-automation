@@ -52,6 +52,9 @@ import com.leetcodeautomation.data.PipelineStep
 @Composable
 fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
     val state by viewModel.uiState.collectAsState()
+    val needsSetup = state.settings.leetcodeSession.isBlank() ||
+        state.settings.csrfToken.isBlank() ||
+        state.settings.nvidiaApiKey.isBlank()
 
     Scaffold(containerColor = CanvasBlack, topBar = { AppTopBar(onSettingsClick = onOpenSettings) }) { padding ->
         LazyColumn(
@@ -61,6 +64,9 @@ fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            if (needsSetup) {
+                item { SetupNeededBanner(onOpenSettings) }
+            }
             item { TargetProblemCard(state.titleSlug, viewModel::updateSlug, viewModel::solve, state.stage) }
             item { ActivePipelineCard(state.stage) }
             item {
@@ -69,7 +75,7 @@ fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
                 }
                 if (state.stage == Stage.DONE) {
                     Text(
-                        if (state.accepted) "Pipeline complete — ACCEPTED" else "Pipeline complete — not accepted",
+                        if (state.accepted) "Done — it got accepted! 🎉" else "Done — it didn't pass. Check the attempts below.",
                         color = if (state.accepted) AcceptedGreen else ErrorRed,
                         fontFamily = JetBrainsMono,
                         fontWeight = FontWeight.SemiBold,
@@ -78,7 +84,7 @@ fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
             }
             item {
                 Text(
-                    "RECENT ATTEMPTS",
+                    "RECENT TRIES",
                     color = OnSurfaceVariant,
                     fontFamily = JetBrainsMono,
                     fontSize = 12.sp,
@@ -87,6 +93,40 @@ fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
                 )
             }
             items(state.steps.reversed()) { step -> AttemptCard(step) }
+        }
+    }
+}
+
+@Composable
+private fun SetupNeededBanner(onOpenSettings: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(SecondaryContainer.copy(alpha = 0.12f))
+            .border(1.dp, SecondaryContainer.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .padding(16.dp),
+    ) {
+        Text("One-time setup needed", color = SecondaryContainer, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Before it can solve problems, log in to LeetCode and connect the AI in Settings.",
+            color = OnSurfaceVariant,
+            fontSize = 13.sp,
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(SecondaryContainer)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onOpenSettings,
+                )
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+        ) {
+            Text("GO TO SETTINGS", color = SurfaceContainerLowest, fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         }
     }
 }
@@ -108,11 +148,17 @@ private fun TargetProblemCard(
             .padding(16.dp),
     ) {
         Text(
-            "TARGET PROBLEM",
+            "Which problem?",
             color = NvidiaGreenBright,
             fontFamily = JetBrainsMono,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            "Paste the end of a LeetCode URL, e.g. leetcode.com/problems/two-sum → \"two-sum\"",
+            color = OnSurfaceVariant,
+            fontSize = 11.sp,
+            modifier = Modifier.padding(top = 2.dp),
         )
         Spacer(Modifier.height(12.dp))
         Row(
@@ -169,7 +215,7 @@ private fun TargetProblemCard(
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                if (running) "RUNNING…" else "EXECUTE",
+                if (running) "WORKING…" else "SOLVE IT",
                 color = SurfaceContainerLowest,
                 fontFamily = JetBrainsMono,
                 fontWeight = FontWeight.Bold,
@@ -184,10 +230,10 @@ private data class PipelineStageInfo(val label: String, val icon: ImageVector)
 @Composable
 private fun ActivePipelineCard(stage: Stage) {
     val stages = listOf(
-        PipelineStageInfo("Extracting Problem Data", Icons.Default.Download),
-        PipelineStageInfo("Solving (LLM Inference)", Icons.Default.Memory),
-        PipelineStageInfo("Submit Solution", Icons.Default.CloudUpload),
-        PipelineStageInfo("Await Judgment", Icons.Default.Gavel),
+        PipelineStageInfo("Reading the problem", Icons.Default.Download),
+        PipelineStageInfo("AI is writing a solution", Icons.Default.Memory),
+        PipelineStageInfo("Submitting to LeetCode", Icons.Default.CloudUpload),
+        PipelineStageInfo("Waiting for the verdict", Icons.Default.Gavel),
     )
     val activeIndex = when (stage) {
         Stage.IDLE -> -1
@@ -205,7 +251,7 @@ private fun ActivePipelineCard(stage: Stage) {
             .padding(16.dp),
     ) {
         Text(
-            "ACTIVE PIPELINE",
+            "WHAT'S HAPPENING",
             color = OnSurfaceVariant,
             fontFamily = JetBrainsMono,
             fontSize = 12.sp,
