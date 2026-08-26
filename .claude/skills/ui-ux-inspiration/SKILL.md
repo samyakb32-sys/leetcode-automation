@@ -2,13 +2,14 @@
 name: ui-ux-inspiration
 description: >
   Curated catalog of UI/UX design-inspiration websites (Aceternity, ShaderGradient,
-  HeroUI, dialedweb, supahero, motionsites, and others) plus a playbook for
-  translating their web-native patterns (gradients, glassmorphism, scroll/hover
-  motion, bento grids) into Jetpack Compose for this Android app. Use this skill
-  whenever the user wants design inspiration, asks to redesign or restyle a screen,
-  mentions "design references", "UI inspo", or names any of the cataloged sites
-  (Aceternity, ShaderGradient, HeroUI, Supahero, Motionsites, dialedweb, 21st.dev,
-  etc.) — even if they don't explicitly say "use the design skill". Also use it when
+  HeroUI, dialedweb, supahero, motionsites, Spline 3D, and others) plus a playbook
+  for translating their web-native patterns (gradients, glassmorphism, scroll/hover
+  motion, bento grids, 3D scenes) into Jetpack Compose for this Android app. Use this
+  skill whenever the user wants design inspiration, asks to redesign or restyle a
+  screen, mentions "design references", "UI inspo", 3D UI elements, or names any of
+  the cataloged sites (Aceternity, ShaderGradient, HeroUI, Supahero, Motionsites,
+  dialedweb, 21st.dev, Spline, etc.) — even if they don't explicitly say "use the
+  design skill". Also use it when
   deciding how a Compose screen (SolverScreen, SettingsScreen, HistoryScreen,
   StatsScreen, Theme) should look or feel, or when picking a visual direction
   (gradients, cards, motion, typography) for this app.
@@ -64,6 +65,18 @@ translate what's useful using the "Translating to Compose" section.
   loading) are typically designed, even though it's not installable in Compose.
 - **https://animmasterlib.dev/** — animation-focused component library; good
   reference for micro-interaction timing.
+
+### 3D
+- **https://spline.design/** — browser-based 3D design tool for building
+  interactive 3D scenes/objects (exported as `.splinecode`/embeds for web, or
+  GLTF/GLB models). Not a component gallery — it's where you'd *author* a 3D
+  asset. Not directly embeddable in Compose (no Spline runtime for Android),
+  but two practical paths: (1) export the scene as a GLB/GLTF model and render
+  it natively with a Compose-compatible 3D engine (e.g. Filament/SceneView,
+  or Google's `filament-android`), or (2) treat it purely as visual reference
+  for lighting/material/shape ideas and rebuild simpler versions procedurally
+  (e.g. a 3D-ish rotating card via `graphicsLayer { rotationX/rotationY }` +
+  gradient shading, no real 3D engine needed for lightweight effects).
 
 ### Uncategorized (not yet reviewed — check before relying on these)
 - **https://www.rocket.new/**
