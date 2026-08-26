@@ -19,12 +19,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import com.leetcodeautomation.data.LeetCodeClient
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val LEETCODE_LOGIN_URL = "https://leetcode.com/accounts/login/"
 private const val LEETCODE_COOKIE_DOMAIN = "https://leetcode.com"
@@ -39,9 +42,14 @@ private const val LEETCODE_COOKIE_DOMAIN = "https://leetcode.com"
 @Composable
 fun LeetCodeLoginScreen(onCaptured: (session: String, csrf: String) -> Unit, onClose: () -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var captured by remember { mutableStateOf(false) }
 
-    fun tryCapture() {
+    // Cookie presence alone isn't proof of a real login: LeetCode sets a csrftoken (and
+    // sometimes an anonymous LEETCODE_SESSION) on the bare login page before any credentials
+    // are entered. Confirm the session is actually signed in via the API before capturing it,
+    // so this can't hand back an unauthenticated session that fails every submit later.
+    suspend fun tryCapture() {
         if (captured) return
         val raw = CookieManager.getInstance().getCookie(LEETCODE_COOKIE_DOMAIN) ?: return
         val cookies = raw.split(";").associate { entry ->
@@ -50,7 +58,9 @@ fun LeetCodeLoginScreen(onCaptured: (session: String, csrf: String) -> Unit, onC
         }
         val session = cookies["LEETCODE_SESSION"]
         val csrf = cookies["csrftoken"]
-        if (!session.isNullOrBlank() && !csrf.isNullOrBlank()) {
+        if (session.isNullOrBlank() || csrf.isNullOrBlank()) return
+        val signedIn = runCatching { LeetCodeClient(session, csrf).fetchUsername() }.getOrNull() != null
+        if (signedIn) {
             captured = true
             onCaptured(session, csrf)
         }
@@ -83,7 +93,7 @@ fun LeetCodeLoginScreen(onCaptured: (session: String, csrf: String) -> Unit, onC
                     webViewClient = object : WebViewClient() {
                         override fun onPageFinished(view: WebView, url: String?) {
                             super.onPageFinished(view, url)
-                            tryCapture()
+                            scope.launch { tryCapture() }
                         }
                     }
                 }

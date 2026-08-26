@@ -17,14 +17,15 @@ class Pipeline(
         val problem = leetcode.fetchProblem(titleSlug, language.langSlug)
         var solution = solver.solve(problem.title, problem.contentHtml, problem.starterCode, language)
 
+        val attempts = maxFixAttempts.coerceAtLeast(1)
         var lastStep: PipelineStep? = null
-        for (attempt in 1..maxFixAttempts) {
+        for (attempt in 1..attempts) {
             val result = leetcode.submitSolution(problem.titleSlug, problem.questionId, solution.code, language.langSlug)
             val step = PipelineStep(attempt, solution, result)
             onStep(step)
             lastStep = step
 
-            if (result.accepted || attempt == maxFixAttempts) break
+            if (result.accepted || attempt == attempts) break
             solution = solver.fix(problem.title, solution.code, result.errorSummary, language)
         }
         return lastStep!!

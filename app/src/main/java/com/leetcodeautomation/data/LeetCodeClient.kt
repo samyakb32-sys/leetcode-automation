@@ -195,10 +195,15 @@ class LeetCodeClient(
             val resp = withContext(Dispatchers.IO) {
                 http.newCall(request(checkUrl).build()).execute()
             }
-            val body = resp.use { it.body?.string().orEmpty() }
-            val obj = json.parseToJsonElement(body).jsonObject
+            // A transient non-2xx (rate limit, judge hiccup) shouldn't blow up the whole
+            // fix-retry loop — just treat it like "still pending" and poll again.
+            val obj = resp.use {
+                if (!it.isSuccessful) null else runCatching {
+                    json.parseToJsonElement(it.body?.string().orEmpty()).jsonObject
+                }.getOrNull()
+            }
 
-            if (obj["state"]?.jsonPrimitive?.contentOrNull == "SUCCESS") {
+            if (obj != null && obj["state"]?.jsonPrimitive?.contentOrNull == "SUCCESS") {
                 val statusMsg = obj["status_msg"]?.jsonPrimitive?.contentOrNull ?: "Unknown"
                 return SubmissionResult(
                     accepted = statusMsg == "Accepted",
