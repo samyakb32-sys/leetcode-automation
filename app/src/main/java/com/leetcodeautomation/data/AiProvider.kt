@@ -49,6 +49,13 @@ enum class AiProvider(
         defaultModel = "claude-3-5-haiku-20241022",
         keyHint = "From console.anthropic.com",
     ),
+    OPENROUTER(
+        id = "openrouter",
+        label = "OpenRouter",
+        defaultBaseUrl = "https://openrouter.ai/api/v1/chat/completions",
+        defaultModel = "meta-llama/llama-3.3-70b-instruct",
+        keyHint = "From openrouter.ai/keys — one key, many models",
+    ),
     CUSTOM(
         id = "custom",
         label = "Other",

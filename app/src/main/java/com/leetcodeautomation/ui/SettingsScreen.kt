@@ -75,6 +75,7 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
     var groqApiKey by remember { mutableStateOf(initial.groqApiKey) }
     var geminiApiKey by remember { mutableStateOf(initial.geminiApiKey) }
     var anthropicApiKey by remember { mutableStateOf(initial.anthropicApiKey) }
+    var openrouterApiKey by remember { mutableStateOf(initial.openrouterApiKey) }
     var customBaseUrl by remember { mutableStateOf(initial.customApiBaseUrl) }
     var customApiKey by remember { mutableStateOf(initial.customApiKey) }
     var maxAttempts by remember { mutableStateOf(initial.maxFixAttempts) }
@@ -96,6 +97,7 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
         groqApiKey = groqApiKey,
         geminiApiKey = geminiApiKey,
         anthropicApiKey = anthropicApiKey,
+        openrouterApiKey = openrouterApiKey,
         customApiBaseUrl = customBaseUrl,
         customApiKey = customApiKey,
         maxFixAttempts = maxAttempts,
@@ -346,6 +348,7 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
                                 AiProvider.GROQ -> groqApiKey
                                 AiProvider.GEMINI -> geminiApiKey
                                 AiProvider.ANTHROPIC -> anthropicApiKey
+                                AiProvider.OPENROUTER -> openrouterApiKey
                                 else -> ""
                             },
                             onChange = { value ->
@@ -354,6 +357,7 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
                                     AiProvider.GROQ -> groqApiKey = value
                                     AiProvider.GEMINI -> geminiApiKey = value
                                     AiProvider.ANTHROPIC -> anthropicApiKey = value
+                                    AiProvider.OPENROUTER -> openrouterApiKey = value
                                     else -> {}
                                 }
                             },

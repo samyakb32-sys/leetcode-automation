@@ -21,6 +21,7 @@ data class Settings(
     val groqApiKey: String = "",
     val geminiApiKey: String = "",
     val anthropicApiKey: String = "",
+    val openrouterApiKey: String = "",
     // Only used when aiProvider is "custom": any OpenAI-compatible chat completions endpoint.
     val customApiBaseUrl: String = "",
     val customApiKey: String = "",
@@ -49,6 +50,7 @@ class SettingsRepository(private val context: Context) {
         val GROQ_KEY = stringPreferencesKey("groq_api_key")
         val GEMINI_KEY = stringPreferencesKey("gemini_api_key")
         val ANTHROPIC_KEY = stringPreferencesKey("anthropic_api_key")
+        val OPENROUTER_KEY = stringPreferencesKey("openrouter_api_key")
         val CUSTOM_BASE_URL = stringPreferencesKey("custom_api_base_url")
         val CUSTOM_API_KEY = stringPreferencesKey("custom_api_key")
         val MAX_ATTEMPTS = intPreferencesKey("max_fix_attempts")
@@ -73,6 +75,7 @@ class SettingsRepository(private val context: Context) {
             groqApiKey = prefs[Keys.GROQ_KEY].orEmpty(),
             geminiApiKey = prefs[Keys.GEMINI_KEY].orEmpty(),
             anthropicApiKey = prefs[Keys.ANTHROPIC_KEY].orEmpty(),
+            openrouterApiKey = prefs[Keys.OPENROUTER_KEY].orEmpty(),
             customApiBaseUrl = prefs[Keys.CUSTOM_BASE_URL].orEmpty(),
             customApiKey = prefs[Keys.CUSTOM_API_KEY].orEmpty(),
             maxFixAttempts = prefs[Keys.MAX_ATTEMPTS] ?: 5,
@@ -97,6 +100,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.GROQ_KEY] = settings.groqApiKey
             prefs[Keys.GEMINI_KEY] = settings.geminiApiKey
             prefs[Keys.ANTHROPIC_KEY] = settings.anthropicApiKey
+            prefs[Keys.OPENROUTER_KEY] = settings.openrouterApiKey
             prefs[Keys.CUSTOM_BASE_URL] = settings.customApiBaseUrl
             prefs[Keys.CUSTOM_API_KEY] = settings.customApiKey
             prefs[Keys.MAX_ATTEMPTS] = settings.maxFixAttempts

@@ -146,6 +146,7 @@ val Settings.hasAiCredential: Boolean
         AiProvider.GROQ -> groqApiKey.isNotBlank()
         AiProvider.GEMINI -> geminiApiKey.isNotBlank()
         AiProvider.ANTHROPIC -> anthropicApiKey.isNotBlank()
+        AiProvider.OPENROUTER -> openrouterApiKey.isNotBlank()
         AiProvider.CUSTOM -> customApiKey.isNotBlank()
     }
 
@@ -158,6 +159,7 @@ fun Settings.toSolver(): AiSolver {
         AiProvider.GROQ -> NvidiaSolver(apiKey = groqApiKey, model = model, baseUrl = provider.defaultBaseUrl)
         AiProvider.GEMINI -> NvidiaSolver(apiKey = geminiApiKey, model = model, baseUrl = provider.defaultBaseUrl)
         AiProvider.ANTHROPIC -> AnthropicSolver(apiKey = anthropicApiKey, model = model)
+        AiProvider.OPENROUTER -> NvidiaSolver(apiKey = openrouterApiKey, model = model, baseUrl = provider.defaultBaseUrl)
         AiProvider.CUSTOM -> NvidiaSolver(
             apiKey = customApiKey,
             model = model,
