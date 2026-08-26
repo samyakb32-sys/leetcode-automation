@@ -24,6 +24,7 @@ import com.leetcodeautomation.ui.AppTab
 import com.leetcodeautomation.ui.BottomNav
 import com.leetcodeautomation.ui.HistoryScreen
 import com.leetcodeautomation.ui.LeetCodeAutomationTheme
+import com.leetcodeautomation.ui.LeetCodeLoginScreen
 import com.leetcodeautomation.ui.SettingsScreen
 import com.leetcodeautomation.ui.SolverScreen
 import com.leetcodeautomation.ui.SolverViewModel
@@ -37,6 +38,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             LeetCodeAutomationTheme {
                 var tab by remember { mutableStateOf(AppTab.SOLVE) }
+                var showLogin by remember { mutableStateOf(false) }
                 val state by viewModel.uiState.collectAsState()
                 val context = LocalContext.current
 
@@ -58,16 +60,30 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.weight(1f, fill = true)) {
-                        when (tab) {
-                            AppTab.SOLVE -> SolverScreen(viewModel = viewModel, onOpenSettings = { tab = AppTab.SETTINGS })
-                            AppTab.HISTORY -> HistoryScreen()
-                            AppTab.STATS -> StatsScreen()
-                            AppTab.SETTINGS -> SettingsScreen(initial = state.settings, onSave = viewModel::saveSettings)
+                if (showLogin) {
+                    LeetCodeLoginScreen(
+                        onCaptured = { session, csrf ->
+                            viewModel.saveSettings(state.settings.copy(leetcodeSession = session, csrfToken = csrf))
+                            showLogin = false
+                        },
+                        onClose = { showLogin = false },
+                    )
+                } else {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.weight(1f, fill = true)) {
+                            when (tab) {
+                                AppTab.SOLVE -> SolverScreen(viewModel = viewModel, onOpenSettings = { tab = AppTab.SETTINGS })
+                                AppTab.HISTORY -> HistoryScreen()
+                                AppTab.STATS -> StatsScreen()
+                                AppTab.SETTINGS -> SettingsScreen(
+                                    initial = state.settings,
+                                    onSave = viewModel::saveSettings,
+                                    onLaunchLogin = { showLogin = true },
+                                )
+                            }
                         }
+                        BottomNav(selected = tab, onSelect = { tab = it })
                     }
-                    BottomNav(selected = tab, onSelect = { tab = it })
                 }
             }
         }

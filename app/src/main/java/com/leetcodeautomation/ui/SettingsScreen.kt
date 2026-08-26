@@ -65,7 +65,7 @@ import com.leetcodeautomation.data.Settings
 import com.leetcodeautomation.data.SolveLanguage
 
 @Composable
-fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
+fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit, onLaunchLogin: () -> Unit = {}) {
     var session by remember { mutableStateOf(initial.leetcodeSession) }
     var csrf by remember { mutableStateOf(initial.csrfToken) }
     var apiKey by remember { mutableStateOf(initial.nvidiaApiKey) }
@@ -176,34 +176,74 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
             item {
                 SettingsCard(title = "Log in to LeetCode", icon = Icons.Default.VpnKey) {
                     Text(
-                        "The app needs to be logged in as you to submit solutions. You'll copy two values from your browser, once.",
+                        "The app needs to be logged in as you to submit solutions.",
                         color = OnSurfaceVariant,
                         fontSize = 13.sp,
                         modifier = Modifier.padding(bottom = 12.dp),
                     )
-                    HelpField(
-                        friendlyLabel = "Your LeetCode login",
-                        technicalLabel = "LEETCODE_SESSION",
-                        value = session,
-                        onChange = { session = it },
-                        steps = listOf(
-                            "On your phone or computer, open leetcode.com and make sure you're logged in.",
-                            "Open your browser's Developer Tools (on Chrome: menu ⋮ → More tools → Developer tools, or press F12).",
-                            "Go to the \"Application\" tab (Chrome) or \"Storage\" tab (Firefox), then Cookies → leetcode.com.",
-                            "Find the row named LEETCODE_SESSION, copy its long Value, and paste it here.",
-                        ),
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    HelpField(
-                        friendlyLabel = "Security token",
-                        technicalLabel = "CSRF_TOKEN",
-                        value = csrf,
-                        onChange = { csrf = it },
-                        steps = listOf(
-                            "In that same Cookies list for leetcode.com...",
-                            "Find the row named csrftoken, copy its Value, and paste it here.",
-                        ),
-                    )
+                    if (session.isNotBlank() && csrf.isNotBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
+                            Dot(NvidiaGreenBright)
+                            Text("Logged in", color = OnSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(start = 6.dp))
+                        }
+                    }
+                    androidx.compose.material3.Button(
+                        onClick = onLaunchLogin,
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = NvidiaGreenBright),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            if (session.isNotBlank()) "Log in again" else "Log in with LeetCode",
+                            color = androidx.compose.ui.graphics.Color.Black,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+
+                    var showManual by remember { mutableStateOf(false) }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(top = 14.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { showManual = !showManual },
+                            ),
+                    ) {
+                        Text("Or paste values manually", color = NvidiaGreenBright, fontSize = 12.sp)
+                        Icon(
+                            if (showManual) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = NvidiaGreenBright,
+                        )
+                    }
+
+                    if (showManual) {
+                        Spacer(Modifier.height(12.dp))
+                        HelpField(
+                            friendlyLabel = "Your LeetCode login",
+                            technicalLabel = "LEETCODE_SESSION",
+                            value = session,
+                            onChange = { session = it },
+                            steps = listOf(
+                                "On your phone or computer, open leetcode.com and make sure you're logged in.",
+                                "Open your browser's Developer Tools (on Chrome: menu ⋮ → More tools → Developer tools, or press F12).",
+                                "Go to the \"Application\" tab (Chrome) or \"Storage\" tab (Firefox), then Cookies → leetcode.com.",
+                                "Find the row named LEETCODE_SESSION, copy its long Value, and paste it here.",
+                            ),
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        HelpField(
+                            friendlyLabel = "Security token",
+                            technicalLabel = "CSRF_TOKEN",
+                            value = csrf,
+                            onChange = { csrf = it },
+                            steps = listOf(
+                                "In that same Cookies list for leetcode.com...",
+                                "Find the row named csrftoken, copy its Value, and paste it here.",
+                            ),
+                        )
+                    }
                 }
             }
 
