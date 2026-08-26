@@ -73,7 +73,13 @@ fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
                 item { SetupNeededBanner(onOpenSettings) }
             }
             item { SolveButtonCard(titleSlug = state.titleSlug, stage = state.stage, onExecute = viewModel::solve) }
-            item { ActivePipelineCard(state.stage) }
+            item {
+                ActivePipelineCard(
+                    stage = state.stage,
+                    attempt = state.steps.size,
+                    maxAttempts = state.settings.maxFixAttempts,
+                )
+            }
             item {
                 state.errorMessage?.let {
                     Text(it, color = MaterialTheme.colorScheme.error, fontFamily = JetBrainsMono)
@@ -256,13 +262,15 @@ private fun SolveButtonCard(titleSlug: String, stage: Stage, onExecute: () -> Un
 private data class PipelineStageInfo(val label: String, val icon: ImageVector)
 
 @Composable
-private fun ActivePipelineCard(stage: Stage) {
+private fun ActivePipelineCard(stage: Stage, attempt: Int = 0, maxAttempts: Int = 1) {
+    // steps.size counts completed attempts, so the attempt currently in flight is one more.
+    val attemptLabel = if (stage == Stage.SUBMITTING && maxAttempts > 1) " (try ${attempt + 1} of $maxAttempts)" else ""
     val stages = listOf(
         PipelineStageInfo("Picking a problem", Icons.Default.Shuffle),
         PipelineStageInfo("Reading the problem", Icons.Default.Download),
         PipelineStageInfo("AI is writing a solution", Icons.Default.Memory),
-        PipelineStageInfo("Submitting to LeetCode", Icons.Default.CloudUpload),
-        PipelineStageInfo("Waiting for the verdict", Icons.Default.Gavel),
+        PipelineStageInfo("Submitting to LeetCode$attemptLabel", Icons.Default.CloudUpload),
+        PipelineStageInfo("Waiting for the verdict$attemptLabel", Icons.Default.Gavel),
     )
     val activeIndex = when (stage) {
         Stage.IDLE -> -1

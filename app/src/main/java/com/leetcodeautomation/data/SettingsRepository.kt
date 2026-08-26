@@ -25,7 +25,7 @@ data class Settings(
     // Only used when aiProvider is "custom": any OpenAI-compatible chat completions endpoint.
     val customApiBaseUrl: String = "",
     val customApiKey: String = "",
-    val maxFixAttempts: Int = 5,
+    val maxFixAttempts: Int = 3,
     // Which language the AI writes solutions in and submits to LeetCode.
     val submissionLanguage: String = SolveLanguage.PYTHON3.langSlug,
     // Streak automation: run automatically at solveHour:solveMinute, every repeatEveryDays
@@ -78,7 +78,7 @@ class SettingsRepository(private val context: Context) {
             openrouterApiKey = prefs[Keys.OPENROUTER_KEY].orEmpty(),
             customApiBaseUrl = prefs[Keys.CUSTOM_BASE_URL].orEmpty(),
             customApiKey = prefs[Keys.CUSTOM_API_KEY].orEmpty(),
-            maxFixAttempts = prefs[Keys.MAX_ATTEMPTS] ?: 5,
+            maxFixAttempts = prefs[Keys.MAX_ATTEMPTS] ?: 3,
             submissionLanguage = prefs[Keys.SUBMISSION_LANGUAGE] ?: SolveLanguage.PYTHON3.langSlug,
             streakEnabled = prefs[Keys.STREAK_ENABLED] ?: false,
             solveHour = prefs[Keys.SOLVE_HOUR] ?: 8,
