@@ -56,7 +56,21 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun solve() {
+    /** Solves today's Daily Challenge specifically. */
+    fun solveDaily() = solve { leetcode, _ ->
+        ProblemPicker.pickDaily(leetcode)
+            ?: throw IllegalStateException("Couldn't reach LeetCode's Daily Challenge right now.")
+    }
+
+    /** Solves the next unsolved problem from the backup slugs configured in Settings — never the Daily Challenge. */
+    fun solvePractice() = solve { _, alreadySolved ->
+        ProblemPicker.pickFromBackups(_uiState.value.settings.backupSlugs, alreadySolved)
+            ?: throw IllegalStateException(
+                "No backup problems are set — add some comma-separated LeetCode slugs in Settings first."
+            )
+    }
+
+    private fun solve(pickSlug: suspend (LeetCodeClient, Set<String>) -> String) {
         val state = _uiState.value
         val s = state.settings
         if (s.leetcodeSession.isBlank() || s.csrfToken.isBlank() || !s.hasAiCredential) {
@@ -79,11 +93,7 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
                 val pipeline = Pipeline(leetcode, solver)
 
                 val alreadySolved = historyStore.load().filter { it.accepted }.map { it.titleSlug }.toSet()
-                val slug = ProblemPicker.pickOne(leetcode, s.backupSlugs, alreadySolved)
-                    ?: throw IllegalStateException(
-                        "Couldn't find a problem to solve — LeetCode's Daily Challenge wasn't reachable and " +
-                            "no backup problems are set in Settings."
-                    )
+                val slug = pickSlug(leetcode, alreadySolved)
                 _uiState.value = _uiState.value.copy(stage = Stage.EXTRACTING, titleSlug = slug)
 
                 _uiState.value = _uiState.value.copy(stage = Stage.SOLVING)

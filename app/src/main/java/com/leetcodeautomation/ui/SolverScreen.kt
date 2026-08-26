@@ -72,7 +72,14 @@ fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
             if (needsSetup) {
                 item { SetupNeededBanner(onOpenSettings) }
             }
-            item { SolveButtonCard(titleSlug = state.titleSlug, stage = state.stage, onExecute = viewModel::solve) }
+            item {
+                SolveButtonCard(
+                    titleSlug = state.titleSlug,
+                    stage = state.stage,
+                    onSolveDaily = viewModel::solveDaily,
+                    onSolvePractice = viewModel::solvePractice,
+                )
+            }
             item {
                 ActivePipelineCard(
                     stage = state.stage,
@@ -197,7 +204,12 @@ private fun SetupNeededBanner(onOpenSettings: () -> Unit) {
 }
 
 @Composable
-private fun SolveButtonCard(titleSlug: String, stage: Stage, onExecute: () -> Unit) {
+private fun SolveButtonCard(
+    titleSlug: String,
+    stage: Stage,
+    onSolveDaily: () -> Unit,
+    onSolvePractice: () -> Unit,
+) {
     val running = stage == Stage.PICKING || stage == Stage.EXTRACTING || stage == Stage.SOLVING || stage == Stage.SUBMITTING
     Column(
         modifier = Modifier
@@ -216,7 +228,7 @@ private fun SolveButtonCard(titleSlug: String, stage: Stage, onExecute: () -> Un
         )
         Text(
             if (running && titleSlug.isNotBlank()) "Working on: $titleSlug"
-            else "It picks a problem for you — today's Daily Challenge, or a backup from Settings.",
+            else "SOLVE tackles today's Daily Challenge. PRACTICE picks one from your backup list in Settings.",
             color = OnSurfaceVariant,
             fontSize = 11.sp,
             modifier = Modifier.padding(top = 2.dp),
@@ -232,7 +244,7 @@ private fun SolveButtonCard(titleSlug: String, stage: Stage, onExecute: () -> Un
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     enabled = !running,
-                    onClick = onExecute,
+                    onClick = onSolveDaily,
                 )
                 .padding(vertical = 14.dp),
             horizontalArrangement = Arrangement.Center,
@@ -251,6 +263,33 @@ private fun SolveButtonCard(titleSlug: String, stage: Stage, onExecute: () -> Un
             Text(
                 if (running) "WORKING…" else "SOLVE",
                 color = SurfaceContainerLowest,
+                fontFamily = JetBrainsMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(50))
+                .border(1.dp, NvidiaGreenBright.copy(alpha = 0.6f), RoundedCornerShape(50))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    enabled = !running,
+                    onClick = onSolvePractice,
+                )
+                .padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Default.Shuffle, contentDescription = null, tint = NvidiaGreenBright)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "PRACTICE ANOTHER",
+                color = NvidiaGreenBright,
                 fontFamily = JetBrainsMono,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp,
