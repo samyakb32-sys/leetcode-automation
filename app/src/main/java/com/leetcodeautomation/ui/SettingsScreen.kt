@@ -44,6 +44,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +62,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leetcodeautomation.data.AiProvider
+import com.leetcodeautomation.data.LeetCodeClient
 import com.leetcodeautomation.data.Settings
 import com.leetcodeautomation.data.SolveLanguage
 
@@ -68,6 +70,17 @@ import com.leetcodeautomation.data.SolveLanguage
 fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit, onLaunchLogin: () -> Unit = {}) {
     var session by remember { mutableStateOf(initial.leetcodeSession) }
     var csrf by remember { mutableStateOf(initial.csrfToken) }
+    var loggedInUsername by remember { mutableStateOf<String?>(null) }
+    var usernameChecked by remember { mutableStateOf(false) }
+    LaunchedEffect(session, csrf) {
+        usernameChecked = false
+        loggedInUsername = if (session.isNotBlank() && csrf.isNotBlank()) {
+            runCatching { LeetCodeClient(session, csrf).fetchUsername() }.getOrNull()
+        } else {
+            null
+        }
+        usernameChecked = true
+    }
     var apiKey by remember { mutableStateOf(initial.nvidiaApiKey) }
     var model by remember { mutableStateOf(initial.aiModel) }
     var aiProvider by remember { mutableStateOf(initial.aiProvider) }
@@ -184,7 +197,13 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit, onLaunchLogin:
                     if (session.isNotBlank() && csrf.isNotBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
                             Dot(NvidiaGreenBright)
-                            Text("Logged in", color = OnSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(start = 6.dp))
+                            Text(
+                                loggedInUsername?.let { "Logged in as $it" }
+                                    ?: if (usernameChecked) "Logged in" else "Logged in — checking account…",
+                                color = OnSurfaceVariant,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 6.dp),
+                            )
                         }
                     }
                     androidx.compose.material3.Button(

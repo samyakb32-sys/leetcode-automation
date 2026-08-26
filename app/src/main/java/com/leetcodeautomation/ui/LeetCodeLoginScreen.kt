@@ -73,19 +73,25 @@ fun LeetCodeLoginScreen(onCaptured: (session: String, csrf: String) -> Unit, onC
         AndroidView(
             modifier = Modifier.fillMaxSize().padding(padding),
             factory = {
-                CookieManager.getInstance().setAcceptCookie(true)
-                WebView(context).apply {
+                val cookieManager = CookieManager.getInstance()
+                cookieManager.setAcceptCookie(true)
+                android.webkit.WebStorage.getInstance().deleteAllData()
+                val webView = WebView(context).apply {
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
-                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                    cookieManager.setAcceptThirdPartyCookies(this, true)
                     webViewClient = object : WebViewClient() {
                         override fun onPageFinished(view: WebView, url: String?) {
                             super.onPageFinished(view, url)
                             tryCapture()
                         }
                     }
-                    loadUrl(LEETCODE_LOGIN_URL)
                 }
+                // Clear any leftover session/Google sign-in cookies first, so this always shows
+                // a real login prompt instead of instantly re-capturing a stale session and
+                // closing before the user sees anything (what "Log in again" looked like before).
+                cookieManager.removeAllCookies { webView.loadUrl(LEETCODE_LOGIN_URL) }
+                webView
             },
         )
     }

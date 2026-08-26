@@ -96,6 +96,34 @@ class LeetCodeClient(
         }
     }
 
+    /** The logged-in user's LeetCode username, or null if the session cookie isn't valid. */
+    suspend fun fetchUsername(): String? = withContext(Dispatchers.IO) {
+        val query = """
+            query globalData {
+              userStatus { username isSignedIn }
+            }
+        """.trimIndent()
+
+        val payload = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject { put("query", query) },
+        )
+
+        val resp = http.newCall(
+            request("https://leetcode.com/graphql", payload, "POST").build()
+        ).execute()
+
+        resp.use {
+            if (!it.isSuccessful) return@withContext null
+            val body = it.body?.string().orEmpty()
+            val root = json.parseToJsonElement(body).jsonObject
+            val status = root["data"]?.jsonObject?.get("userStatus")?.jsonObject ?: return@withContext null
+            val signedIn = status["isSignedIn"]?.jsonPrimitive?.contentOrNull?.toBoolean() ?: false
+            if (!signedIn) return@withContext null
+            status["username"]?.jsonPrimitive?.contentOrNull
+        }
+    }
+
     /** Slug of today's LeetCode "Daily Coding Challenge" — the default target for streak runs. */
     suspend fun fetchDailyChallengeSlug(): String = withContext(Dispatchers.IO) {
         val query = """
