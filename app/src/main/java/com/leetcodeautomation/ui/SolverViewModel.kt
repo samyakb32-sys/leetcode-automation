@@ -56,17 +56,23 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Solves today's Daily Challenge specifically. */
-    fun solveDaily() = solve { leetcode, _ ->
-        ProblemPicker.pickDaily(leetcode)
+    /** Solves today's Daily Challenge specifically — refuses if it's already been Accepted. */
+    fun solveDaily() = solve { leetcode, alreadySolved ->
+        val daily = ProblemPicker.pickDaily(leetcode)
             ?: throw IllegalStateException("Couldn't reach LeetCode's Daily Challenge right now.")
+        if (daily in alreadySolved) {
+            throw IllegalStateException(
+                "You've already solved today's Daily Challenge — check History, or try Practice Another."
+            )
+        }
+        daily
     }
 
     /** Solves the next unsolved problem from the backup slugs configured in Settings — never the Daily Challenge. */
     fun solvePractice() = solve { _, alreadySolved ->
         ProblemPicker.pickFromBackups(_uiState.value.settings.backupSlugs, alreadySolved)
             ?: throw IllegalStateException(
-                "No backup problems are set — add some comma-separated LeetCode slugs in Settings first."
+                "No unsolved backup problems left — add more comma-separated LeetCode slugs in Settings."
             )
     }
 
