@@ -28,8 +28,9 @@ class StreakWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
         val solver = settings.toSolver()
         val pipeline = Pipeline(leetcode, solver)
         val history = RunHistoryStore(applicationContext)
+        val alreadySolved = history.load().filter { it.accepted }.map { it.titleSlug }.toSet()
 
-        val targets = ProblemPicker.pickTargets(leetcode, settings.backupSlugs, settings.problemsPerRun)
+        val targets = ProblemPicker.pickTargets(leetcode, settings.backupSlugs, settings.problemsPerRun, alreadySolved)
         if (targets.isEmpty()) return Result.failure()
 
         val language = SolveLanguage.fromSlug(settings.submissionLanguage)

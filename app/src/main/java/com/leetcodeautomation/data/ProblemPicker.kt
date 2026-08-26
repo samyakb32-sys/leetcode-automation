@@ -6,14 +6,26 @@ package com.leetcodeautomation.data
  * button (one target) and the background streak worker (up to problemsPerRun targets).
  */
 object ProblemPicker {
-    suspend fun pickTargets(leetcode: LeetCodeClient, backupSlugs: String, count: Int): List<String> {
+    /**
+     * [excludeSlugs] is normally the set of already-accepted slugs, so repeated taps don't just
+     * hand back today's Daily Challenge forever — falls back to including them anyway once every
+     * candidate has been solved, rather than erroring out with nothing left to try.
+     */
+    suspend fun pickTargets(
+        leetcode: LeetCodeClient,
+        backupSlugs: String,
+        count: Int,
+        excludeSlugs: Set<String> = emptySet(),
+    ): List<String> {
         val backups = backupSlugs.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-        return buildList {
+        val candidates = buildList {
             runCatching { leetcode.fetchDailyChallengeSlug() }.getOrNull()?.let { add(it) }
             addAll(backups)
-        }.distinct().take(count.coerceAtLeast(1))
+        }.distinct()
+        val unsolved = candidates.filterNot { it in excludeSlugs }
+        return unsolved.ifEmpty { candidates }.take(count.coerceAtLeast(1))
     }
 
-    suspend fun pickOne(leetcode: LeetCodeClient, backupSlugs: String): String? =
-        pickTargets(leetcode, backupSlugs, 1).firstOrNull()
+    suspend fun pickOne(leetcode: LeetCodeClient, backupSlugs: String, excludeSlugs: Set<String> = emptySet()): String? =
+        pickTargets(leetcode, backupSlugs, 1, excludeSlugs).firstOrNull()
 }

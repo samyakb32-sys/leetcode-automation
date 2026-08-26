@@ -78,7 +78,8 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
                 val solver = s.toSolver()
                 val pipeline = Pipeline(leetcode, solver)
 
-                val slug = ProblemPicker.pickOne(leetcode, s.backupSlugs)
+                val alreadySolved = historyStore.load().filter { it.accepted }.map { it.titleSlug }.toSet()
+                val slug = ProblemPicker.pickOne(leetcode, s.backupSlugs, alreadySolved)
                     ?: throw IllegalStateException(
                         "Couldn't find a problem to solve — LeetCode's Daily Challenge wasn't reachable and " +
                             "no backup problems are set in Settings."
