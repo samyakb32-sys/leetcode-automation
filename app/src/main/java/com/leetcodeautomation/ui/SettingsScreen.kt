@@ -208,28 +208,6 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
             }
 
             item {
-                SettingsCard(title = "Connect the AI", icon = Icons.Default.Memory) {
-                    Text(
-                        "This app uses NVIDIA's free AI service to write solutions. You need a personal key, once.",
-                        color = OnSurfaceVariant,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    )
-                    HelpField(
-                        friendlyLabel = "AI key",
-                        technicalLabel = "NVIDIA_API_KEY",
-                        value = apiKey,
-                        onChange = { apiKey = it },
-                        steps = listOf(
-                            "Go to build.nvidia.com and sign in (a free account works).",
-                            "Open any model page and tap \"Get API Key\".",
-                            "Copy the key — it starts with nvapi- — and paste it here.",
-                        ),
-                    )
-                }
-            }
-
-            item {
                 SettingsCard(title = "Protect My Streak", icon = Icons.Default.Bolt) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -330,10 +308,16 @@ fun SettingsScreen(initial: Settings, onSave: (Settings) -> Unit) {
 
                     Spacer(Modifier.height(12.dp))
                     when (val provider = AiProvider.fromId(aiProvider)) {
-                        AiProvider.NVIDIA -> Text(
-                            "Uses the NVIDIA key from \"Connect the AI\" above.",
-                            color = OnSurfaceVariant,
-                            fontSize = 11.sp,
+                        AiProvider.NVIDIA -> HelpField(
+                            friendlyLabel = "AI key",
+                            technicalLabel = "NVIDIA_API_KEY",
+                            value = apiKey,
+                            onChange = { apiKey = it },
+                            steps = listOf(
+                                "Go to build.nvidia.com and sign in (a free account works).",
+                                "Open any model page and tap \"Get API Key\".",
+                                "Copy the key — it starts with nvapi- — and paste it here.",
+                            ),
                         )
                         AiProvider.CUSTOM -> AdvancedProviderFields(
                             baseUrl = customBaseUrl,
