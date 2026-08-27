@@ -41,8 +41,11 @@ fun StatsScreen() {
         val acceptedDays = entries.filter { it.accepted }
             .map { java.time.Instant.ofEpochMilli(it.timestampMillis).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
             .toSortedSet()
+        // A streak stays alive until a whole day is missed, so if today isn't solved *yet* we
+        // count back from yesterday — otherwise every streak would read 0 until the day's solve.
+        val today = java.time.LocalDate.now()
+        var day = if (acceptedDays.contains(today)) today else today.minusDays(1)
         var streak = 0
-        var day = java.time.LocalDate.now()
         while (acceptedDays.contains(day)) {
             streak++
             day = day.minusDays(1)

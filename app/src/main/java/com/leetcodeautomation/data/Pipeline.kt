@@ -12,9 +12,12 @@ class Pipeline(
         titleSlug: String,
         maxFixAttempts: Int,
         language: SolveLanguage = SolveLanguage.PYTHON3,
+        /** Called once the problem has been fetched, before the AI is asked for a solution. */
+        onFetched: suspend () -> Unit = {},
         onStep: suspend (PipelineStep) -> Unit,
     ): PipelineStep {
         val problem = leetcode.fetchProblem(titleSlug, language.langSlug)
+        onFetched()
         var solution = solver.solve(problem.title, problem.contentHtml, problem.starterCode, language)
 
         val attempts = maxFixAttempts.coerceAtLeast(1)

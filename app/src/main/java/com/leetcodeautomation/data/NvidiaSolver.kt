@@ -64,7 +64,10 @@ internal fun fixPrompt(title: String, previousCode: String, errorSummary: String
 
 internal fun extractFencedCode(text: String): String {
     val regex = Regex("```(?:\\w+)?\\s*\\n(.*?)```", RegexOption.DOT_MATCHES_ALL)
-    val match = regex.find(text)
+    // The prompt asks for the final solution as the last fenced block (after the explanation),
+    // so take the last one — a model that illustrates with a snippet first would otherwise get
+    // that snippet submitted instead of its actual answer.
+    val match = regex.findAll(text).lastOrNull()
         ?: throw SolverException("AI response did not contain a fenced code block")
     return match.groupValues[1].trim()
 }
@@ -122,7 +125,7 @@ class NvidiaSolver(
             }
             val respBody = it.body?.string().orEmpty()
             val root = json.parseToJsonElement(respBody).jsonObject
-            val text = root["choices"]?.jsonArray?.get(0)?.jsonObject
+            val text = root["choices"]?.jsonArray?.firstOrNull()?.jsonObject
                 ?.get("message")?.jsonObject
                 ?.get("content")?.jsonPrimitive?.contentOrNull
                 ?: throw SolverException("Unexpected AI provider response: $respBody")

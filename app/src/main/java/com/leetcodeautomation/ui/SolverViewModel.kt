@@ -71,10 +71,14 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
                 "You've already solved today's Daily Challenge — check History, or try Practice Another."
             )
         }
-        val difficulty = leetcode.fetchDifficulty(daily)
-        if (difficulty != "Easy") {
-            throw IllegalStateException(
-                "Today's Daily Challenge is ${difficulty ?: "not"} — this app only solves Easy problems. Try Practice Another instead."
+        when (val difficulty = leetcode.fetchDifficulty(daily)) {
+            "Easy" -> Unit
+            // null means the lookup itself failed (network/rate limit) — don't claim it's too hard.
+            null -> throw IllegalStateException(
+                "Couldn't check today's Daily Challenge difficulty — check your connection and try again."
+            )
+            else -> throw IllegalStateException(
+                "Today's Daily Challenge is $difficulty — this app only solves Easy problems. Try Practice Another instead."
             )
         }
         daily
@@ -115,10 +119,15 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
                 val slug = pickSlug(leetcode, alreadySolved)
                 _uiState.value = _uiState.value.copy(stage = Stage.EXTRACTING, titleSlug = slug)
 
-                _uiState.value = _uiState.value.copy(stage = Stage.SOLVING)
-
                 val language = SolveLanguage.fromSlug(s.submissionLanguage)
-                val lastStep = pipeline.run(slug, s.maxFixAttempts, language) { step ->
+                // Pipeline.run fetches the problem first, then asks the AI — advance to SOLVING
+                // only once fetching is actually done, so a failed fetch isn't blamed on the AI.
+                val lastStep = pipeline.run(
+                    titleSlug = slug,
+                    maxFixAttempts = s.maxFixAttempts,
+                    language = language,
+                    onFetched = { _uiState.value = _uiState.value.copy(stage = Stage.SOLVING) },
+                ) { step ->
                     _uiState.value = _uiState.value.copy(
                         stage = Stage.SUBMITTING,
                         steps = _uiState.value.steps + step,

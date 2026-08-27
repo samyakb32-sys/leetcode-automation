@@ -38,9 +38,19 @@ object ProblemPicker {
      */
     suspend fun pickFromBackups(leetcode: LeetCodeClient, backupSlugs: String, excludeSlugs: Set<String> = emptySet()): String? {
         val backups = backupSlugs.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        var lookupFailed = false
         for (slug in backups) {
             if (slug in excludeSlugs) continue
-            if (leetcode.fetchDifficulty(slug) == "Easy") return slug
+            when (leetcode.fetchDifficulty(slug)) {
+                "Easy" -> return slug
+                // Couldn't determine difficulty (network/rate limit). Keep looking, but remember
+                // so we don't tell the user their list is exhausted when we simply couldn't check.
+                null -> lookupFailed = true
+                else -> Unit
+            }
+        }
+        if (lookupFailed) {
+            throw LeetCodeException("Couldn't check problem difficulties — check your connection and try again.")
         }
         return null
     }

@@ -44,6 +44,9 @@ fun LeetCodeLoginScreen(onCaptured: (session: String, csrf: String) -> Unit, onC
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var captured by remember { mutableStateOf(false) }
+    // Remembers the last session cookie we already verified, so repeated polls don't fire a
+    // fresh network request every tick while the user is still typing their password.
+    val checkedSessions = remember { mutableSetOf<String>() }
 
     // Cookie presence alone isn't proof of a real login: LeetCode sets a csrftoken (and
     // sometimes an anonymous LEETCODE_SESSION) on the bare login page before any credentials
@@ -59,6 +62,8 @@ fun LeetCodeLoginScreen(onCaptured: (session: String, csrf: String) -> Unit, onC
         val session = cookies["LEETCODE_SESSION"]
         val csrf = cookies["csrftoken"]
         if (session.isNullOrBlank() || csrf.isNullOrBlank()) return
+        // Only spend a request when the session cookie is one we haven't already ruled out.
+        if (!checkedSessions.add(session)) return
         val signedIn = runCatching { LeetCodeClient(session, csrf).fetchUsername() }.getOrNull() != null
         if (signedIn) {
             captured = true
@@ -102,6 +107,13 @@ fun LeetCodeLoginScreen(onCaptured: (session: String, csrf: String) -> Unit, onC
                 // closing before the user sees anything (what "Log in again" looked like before).
                 cookieManager.removeAllCookies { webView.loadUrl(LEETCODE_LOGIN_URL) }
                 webView
+            },
+            // Without this the WebView (and its renderer + Activity context) leaks every time
+            // the login screen closes, compounding on each "Log in again".
+            onRelease = { webView ->
+                webView.stopLoading()
+                webView.loadUrl("about:blank")
+                webView.destroy()
             },
         )
     }

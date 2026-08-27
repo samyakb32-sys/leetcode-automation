@@ -137,21 +137,33 @@ private fun ProofButton(titleSlug: String, lastStep: PipelineStep) {
                 indication = null,
                 onClick = {
                     scope.launch {
-                        val entry = RunHistoryEntry(
-                            titleSlug = titleSlug,
-                            accepted = lastStep.result.accepted,
-                            statusMsg = lastStep.result.statusMsg,
-                            attempts = lastStep.attempt,
-                            timestampMillis = System.currentTimeMillis(),
-                            fromBackground = false,
-                        )
-                        val uri = ProofImageGenerator.saveToGallery(context, entry)
-                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                            type = "image/png"
-                            putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        // Saving to the gallery can fail (storage permission denied on API 26-28,
+                        // MediaStore refusing the insert). Without this guard the throw escapes the
+                        // coroutine and crashes the app right after a successful solve.
+                        val result = runCatching {
+                            val entry = RunHistoryEntry(
+                                titleSlug = titleSlug,
+                                accepted = lastStep.result.accepted,
+                                statusMsg = lastStep.result.statusMsg,
+                                attempts = lastStep.attempt,
+                                timestampMillis = System.currentTimeMillis(),
+                                fromBackground = false,
+                            )
+                            val uri = ProofImageGenerator.saveToGallery(context, entry)
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "image/png"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "Share your proof"))
                         }
-                        context.startActivity(android.content.Intent.createChooser(intent, "Share your proof"))
+                        result.exceptionOrNull()?.let { e ->
+                            android.widget.Toast.makeText(
+                                context,
+                                "Couldn't save the proof image: ${e.message ?: "unknown error"}",
+                                android.widget.Toast.LENGTH_LONG,
+                            ).show()
+                        }
                     }
                 },
             )

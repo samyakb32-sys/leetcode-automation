@@ -25,7 +25,14 @@ class LeetCodeClient(
     private val json = Json { ignoreUnknownKeys = true }
     private val jsonMedia = "application/json".toMediaType()
 
-    private val http = OkHttpClient.Builder().build()
+    // Shared across instances: short-lived clients get constructed often (login polling, the
+    // Settings "logged in as" lookup on every keystroke), and a per-instance OkHttpClient would
+    // leak a thread pool and connection pool each time.
+    private val http = shared
+
+    private companion object {
+        private val shared: OkHttpClient by lazy { OkHttpClient.Builder().build() }
+    }
 
     private fun cookieHeader() = "LEETCODE_SESSION=$sessionCookie; csrftoken=$csrfToken"
 

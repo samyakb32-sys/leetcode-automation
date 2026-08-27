@@ -67,7 +67,7 @@ class AnthropicSolver(
             }
             val respBody = it.body?.string().orEmpty()
             val root = json.parseToJsonElement(respBody).jsonObject
-            val text = root["content"]?.jsonArray?.get(0)?.jsonObject
+            val text = root["content"]?.jsonArray?.firstOrNull()?.jsonObject
                 ?.get("text")?.jsonPrimitive?.contentOrNull
                 ?: throw SolverException("Unexpected AI provider response: $respBody")
 
