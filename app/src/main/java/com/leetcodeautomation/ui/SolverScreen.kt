@@ -85,6 +85,7 @@ fun SolverScreen(viewModel: SolverViewModel, onOpenSettings: () -> Unit) {
                     stage = state.stage,
                     attempt = state.steps.size,
                     maxAttempts = state.settings.maxFixAttempts,
+                    failedStage = state.failedStage,
                 )
             }
             item {
@@ -301,7 +302,7 @@ private fun SolveButtonCard(
 private data class PipelineStageInfo(val label: String, val icon: ImageVector)
 
 @Composable
-private fun ActivePipelineCard(stage: Stage, attempt: Int = 0, maxAttempts: Int = 1) {
+private fun ActivePipelineCard(stage: Stage, attempt: Int = 0, maxAttempts: Int = 1, failedStage: Stage? = null) {
     // steps.size counts completed attempts, so the attempt currently in flight is one more.
     val attemptLabel = if (stage == Stage.SUBMITTING && maxAttempts > 1) " (try ${attempt + 1} of $maxAttempts)" else ""
     val stages = listOf(
@@ -311,14 +312,25 @@ private fun ActivePipelineCard(stage: Stage, attempt: Int = 0, maxAttempts: Int 
         PipelineStageInfo("Submitting to LeetCode$attemptLabel", Icons.Default.CloudUpload),
         PipelineStageInfo("Waiting for the verdict$attemptLabel", Icons.Default.Gavel),
     )
-    val activeIndex = when (stage) {
+    fun indexOf(s: Stage?) = when (s) {
+        Stage.PICKING -> 0
+        Stage.EXTRACTING -> 1
+        Stage.SOLVING -> 2
+        Stage.SUBMITTING -> 3
+        else -> 0
+    }
+    // A finished run must not keep a stage spinning: DONE marks every stage complete, and ERROR
+    // stops at whichever stage actually failed rather than implying the earlier ones all passed.
+    val progressIndex = when (stage) {
         Stage.IDLE -> -1
         Stage.PICKING -> 0
         Stage.EXTRACTING -> 1
         Stage.SOLVING -> 2
         Stage.SUBMITTING -> 3
-        Stage.DONE, Stage.ERROR -> 4
+        Stage.DONE -> stages.size
+        Stage.ERROR -> indexOf(failedStage)
     }
+    val stillRunning = stage != Stage.IDLE && stage != Stage.DONE && stage != Stage.ERROR
 
     Column(
         modifier = Modifier
@@ -338,9 +350,9 @@ private fun ActivePipelineCard(stage: Stage, attempt: Int = 0, maxAttempts: Int 
                 .padding(bottom = 12.dp),
         )
         stages.forEachIndexed { i, info ->
-            val complete = i < activeIndex
-            val active = i == activeIndex
-            val pending = i > activeIndex
+            val complete = i < progressIndex
+            val active = stillRunning && i == progressIndex
+            val pending = !complete && !active
             val color = when {
                 complete -> NvidiaGreen
                 active -> SecondaryContainer

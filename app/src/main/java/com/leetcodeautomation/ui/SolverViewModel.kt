@@ -28,6 +28,9 @@ data class SolverUiState(
     val steps: List<PipelineStep> = emptyList(),
     val accepted: Boolean = false,
     val errorMessage: String? = null,
+    // Which stage was in flight when a run failed, so the progress list can show where it
+    // actually stopped instead of claiming every earlier stage completed.
+    val failedStage: Stage? = null,
     val settings: Settings = Settings(),
     val settingsSavedTick: Int = 0,
 )
@@ -99,6 +102,7 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
             steps = emptyList(),
             accepted = false,
             errorMessage = null,
+            failedStage = null,
         )
 
         viewModelScope.launch {
@@ -138,6 +142,7 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     stage = Stage.ERROR,
+                    failedStage = _uiState.value.stage,
                     errorMessage = e.message ?: "Unknown error",
                 )
             }
