@@ -124,6 +124,35 @@ class LeetCodeClient(
         }
     }
 
+    /** A problem's difficulty ("Easy"/"Medium"/"Hard"), or null if it couldn't be fetched. */
+    suspend fun fetchDifficulty(titleSlug: String): String? = withContext(Dispatchers.IO) {
+        val query = """
+            query questionDifficulty(${'$'}titleSlug: String!) {
+              question(titleSlug: ${'$'}titleSlug) { difficulty }
+            }
+        """.trimIndent()
+
+        val payload = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject {
+                put("query", query)
+                putJsonObject("variables") { put("titleSlug", titleSlug) }
+            },
+        )
+
+        val resp = http.newCall(
+            request("https://leetcode.com/graphql", payload, "POST").build()
+        ).execute()
+
+        resp.use {
+            if (!it.isSuccessful) return@withContext null
+            val body = it.body?.string().orEmpty()
+            val root = json.parseToJsonElement(body).jsonObject
+            root["data"]?.jsonObject?.get("question")?.jsonObject
+                ?.get("difficulty")?.jsonPrimitive?.contentOrNull
+        }
+    }
+
     /** Slug of today's LeetCode "Daily Coding Challenge" — the default target for streak runs. */
     suspend fun fetchDailyChallengeSlug(): String = withContext(Dispatchers.IO) {
         val query = """

@@ -32,11 +32,16 @@ object ProblemPicker {
 
     /**
      * Picks from the configured backup slugs only — never the Daily Challenge — for a "solve
-     * something else" action. Strictly excludes [excludeSlugs] (already-accepted problems), with
-     * no repeat fallback: returns null once every backup slug has already been solved.
+     * something else" action. Strictly excludes [excludeSlugs] (already-accepted problems) and,
+     * since this app only targets Easy problems, skips anything that isn't Easy too. No repeat
+     * fallback: returns null once no unsolved Easy backup slug is left.
      */
-    fun pickFromBackups(backupSlugs: String, excludeSlugs: Set<String> = emptySet()): String? {
+    suspend fun pickFromBackups(leetcode: LeetCodeClient, backupSlugs: String, excludeSlugs: Set<String> = emptySet()): String? {
         val backups = backupSlugs.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
-        return backups.firstOrNull { it !in excludeSlugs }
+        for (slug in backups) {
+            if (slug in excludeSlugs) continue
+            if (leetcode.fetchDifficulty(slug) == "Easy") return slug
+        }
+        return null
     }
 }
