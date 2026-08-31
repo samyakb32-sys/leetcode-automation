@@ -19,6 +19,13 @@ data class Problem(
     val starterCode: String,
 )
 
+/** What LeetCode itself knows about a problem, used to skip solved/too-hard/premium targets. */
+data class ProblemMeta(
+    val difficulty: String?,
+    val solved: Boolean,
+    val paidOnly: Boolean,
+)
+
 data class Solution(
     val code: String,
     val explanation: String,

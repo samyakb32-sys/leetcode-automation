@@ -66,29 +66,33 @@ class SolverViewModel(application: Application) : AndroidViewModel(application) 
     fun solveDaily() = solve { leetcode, alreadySolved ->
         val daily = ProblemPicker.pickDaily(leetcode)
             ?: throw IllegalStateException("Couldn't reach LeetCode's Daily Challenge right now.")
-        if (daily in alreadySolved) {
+        // LeetCode's own record catches problems solved outside this app too, which local
+        // history can't see.
+        val meta = leetcode.fetchProblemMeta(daily)
+            ?: throw IllegalStateException(
+                "Couldn't check today's Daily Challenge on LeetCode — check your connection and try again."
+            )
+        if (meta.solved || daily in alreadySolved) {
             throw IllegalStateException(
-                "You've already solved today's Daily Challenge — check History, or try Practice Another."
+                "You've already solved today's Daily Challenge — try Practice Another instead."
             )
         }
-        when (val difficulty = leetcode.fetchDifficulty(daily)) {
-            "Easy" -> Unit
-            // null means the lookup itself failed (network/rate limit) — don't claim it's too hard.
-            null -> throw IllegalStateException(
-                "Couldn't check today's Daily Challenge difficulty — check your connection and try again."
-            )
-            else -> throw IllegalStateException(
-                "Today's Daily Challenge is $difficulty — this app only solves Easy problems. Try Practice Another instead."
+        if (meta.difficulty != "Easy") {
+            throw IllegalStateException(
+                "Today's Daily Challenge is ${meta.difficulty ?: "not Easy"} — this app only solves Easy problems. Try Practice Another instead."
             )
         }
         daily
     }
 
-    /** Solves the next unsolved Easy problem from the backup slugs configured in Settings — never the Daily Challenge. */
+    /**
+     * Solves an Easy problem the account hasn't solved yet — pulled from LeetCode's problem set
+     * so it keeps finding new ones, falling back to the Settings backup slugs.
+     */
     fun solvePractice() = solve { leetcode, alreadySolved ->
-        ProblemPicker.pickFromBackups(leetcode, _uiState.value.settings.backupSlugs, alreadySolved)
+        ProblemPicker.pickPractice(leetcode, _uiState.value.settings.backupSlugs, alreadySolved)
             ?: throw IllegalStateException(
-                "No unsolved Easy backup problems left — add more comma-separated Easy LeetCode slugs in Settings."
+                "Couldn't find an unsolved Easy problem — you may have solved them all, or LeetCode didn't return a list."
             )
     }
 

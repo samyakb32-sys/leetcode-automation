@@ -131,11 +131,15 @@ class LeetCodeClient(
         }
     }
 
-    /** A problem's difficulty ("Easy"/"Medium"/"Hard"), or null if it couldn't be fetched. */
-    suspend fun fetchDifficulty(titleSlug: String): String? = withContext(Dispatchers.IO) {
+    /**
+     * A problem's difficulty plus whether this account has already solved it. LeetCode's own
+     * record is the real source of truth — the app's local history only knows about problems it
+     * solved itself, so anything solved directly on leetcode.com would otherwise look unsolved.
+     */
+    suspend fun fetchProblemMeta(titleSlug: String): ProblemMeta? = withContext(Dispatchers.IO) {
         val query = """
-            query questionDifficulty(${'$'}titleSlug: String!) {
-              question(titleSlug: ${'$'}titleSlug) { difficulty }
+            query questionMeta(${'$'}titleSlug: String!) {
+              question(titleSlug: ${'$'}titleSlug) { difficulty status isPaidOnly }
             }
         """.trimIndent()
 
@@ -155,8 +159,69 @@ class LeetCodeClient(
             if (!it.isSuccessful) return@withContext null
             val body = it.body?.string().orEmpty()
             val root = json.parseToJsonElement(body).jsonObject
-            root["data"]?.jsonObject?.get("question")?.jsonObject
-                ?.get("difficulty")?.jsonPrimitive?.contentOrNull
+            val q = root["data"]?.jsonObject?.get("question")?.jsonObject ?: return@withContext null
+            ProblemMeta(
+                difficulty = q["difficulty"]?.jsonPrimitive?.contentOrNull,
+                // "ac" means accepted at least once on this account.
+                solved = q["status"]?.jsonPrimitive?.contentOrNull == "ac",
+                paidOnly = q["isPaidOnly"]?.jsonPrimitive?.contentOrNull?.toBoolean() ?: false,
+            )
+        }
+    }
+
+    /**
+     * Easy problems this account hasn't solved yet, straight from LeetCode's problem set, so the
+     * app can keep finding fresh problems without the user hand-maintaining a list of slugs.
+     * Premium-only problems are excluded since they can't be submitted without a subscription.
+     */
+    suspend fun fetchUnsolvedEasySlugs(limit: Int = 50, skip: Int = 0): List<String> = withContext(Dispatchers.IO) {
+        val query = """
+            query problemsetQuestionList(${'$'}categorySlug: String, ${'$'}limit: Int, ${'$'}skip: Int, ${'$'}filters: QuestionListFilterInput) {
+              problemsetQuestionList: questionList(
+                categorySlug: ${'$'}categorySlug
+                limit: ${'$'}limit
+                skip: ${'$'}skip
+                filters: ${'$'}filters
+              ) {
+                questions: data { titleSlug status isPaidOnly }
+              }
+            }
+        """.trimIndent()
+
+        val payload = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject {
+                put("query", query)
+                putJsonObject("variables") {
+                    put("categorySlug", "")
+                    put("limit", limit)
+                    put("skip", skip)
+                    putJsonObject("filters") {
+                        put("difficulty", "EASY")
+                        put("status", "NOT_STARTED")
+                    }
+                }
+            },
+        )
+
+        val resp = http.newCall(
+            request("https://leetcode.com/graphql", payload, "POST").build()
+        ).execute()
+
+        resp.use {
+            if (!it.isSuccessful) return@withContext emptyList()
+            val body = it.body?.string().orEmpty()
+            val root = json.parseToJsonElement(body).jsonObject
+            val questions = root["data"]?.jsonObject
+                ?.get("problemsetQuestionList")?.jsonObject
+                ?.get("questions") as? kotlinx.serialization.json.JsonArray
+                ?: return@withContext emptyList()
+            questions.mapNotNull { el ->
+                val q = el.jsonObject
+                val paid = q["isPaidOnly"]?.jsonPrimitive?.contentOrNull?.toBoolean() ?: false
+                val solved = q["status"]?.jsonPrimitive?.contentOrNull == "ac"
+                if (paid || solved) null else q["titleSlug"]?.jsonPrimitive?.contentOrNull
+            }
         }
     }
 

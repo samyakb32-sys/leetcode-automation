@@ -241,7 +241,7 @@ private fun SolveButtonCard(
         )
         Text(
             if (running && titleSlug.isNotBlank()) "Working on: $titleSlug"
-            else "SOLVE tackles today's Daily Challenge. PRACTICE picks one from your backup list in Settings.",
+            else "SOLVE tackles today's Daily Challenge. PRACTICE ANOTHER finds an Easy problem you haven't solved yet.",
             color = OnSurfaceVariant,
             fontSize = 11.sp,
             modifier = Modifier.padding(top = 2.dp),

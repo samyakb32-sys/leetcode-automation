@@ -1,16 +1,13 @@
 package com.leetcodeautomation.data
 
 /**
- * Picks problems automatically so the user never has to type a slug: today's Daily Challenge
- * first, then the configured backup slugs if more targets are needed. Shared by the Solve
- * button (one target) and the background streak worker (up to problemsPerRun targets).
+ * Picks problems automatically so the user never has to type a slug.
+ *
+ * "Already solved" is judged by LeetCode's own record for the account (a problem's `status`),
+ * combined with the app's local run history — relying on local history alone meant anything the
+ * user had solved directly on leetcode.com looked unsolved and got attempted again.
  */
 object ProblemPicker {
-    /**
-     * [excludeSlugs] is normally the set of already-accepted slugs, so repeated taps don't just
-     * hand back today's Daily Challenge forever — falls back to including them anyway once every
-     * candidate has been solved, rather than erroring out with nothing left to try.
-     */
     suspend fun pickTargets(
         leetcode: LeetCodeClient,
         backupSlugs: String,
@@ -31,26 +28,38 @@ object ProblemPicker {
         runCatching { leetcode.fetchDailyChallengeSlug() }.getOrNull()
 
     /**
-     * Picks from the configured backup slugs only — never the Daily Challenge — for a "solve
-     * something else" action. Strictly excludes [excludeSlugs] (already-accepted problems) and,
-     * since this app only targets Easy problems, skips anything that isn't Easy too. No repeat
-     * fallback: returns null once no unsolved Easy backup slug is left.
+     * An unsolved Easy problem to practice on — never the Daily Challenge.
+     *
+     * Prefers LeetCode's own list of Easy problems the account hasn't solved, so it keeps finding
+     * fresh ones without the user maintaining a slug list, and falls back to the configured backup
+     * slugs (also filtered to unsolved + Easy) when that list can't be fetched.
      */
-    suspend fun pickFromBackups(leetcode: LeetCodeClient, backupSlugs: String, excludeSlugs: Set<String> = emptySet()): String? {
+    suspend fun pickPractice(
+        leetcode: LeetCodeClient,
+        backupSlugs: String,
+        excludeSlugs: Set<String> = emptySet(),
+    ): String? {
+        // Random rather than first, so a stale "not started" status can't pin us to one problem.
+        leetcode.fetchUnsolvedEasySlugs()
+            .filterNot { it in excludeSlugs }
+            .randomOrNull()
+            ?.let { return it }
+
         val backups = backupSlugs.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
         var lookupFailed = false
         for (slug in backups) {
             if (slug in excludeSlugs) continue
-            when (leetcode.fetchDifficulty(slug)) {
-                "Easy" -> return slug
-                // Couldn't determine difficulty (network/rate limit). Keep looking, but remember
-                // so we don't tell the user their list is exhausted when we simply couldn't check.
-                null -> lookupFailed = true
-                else -> Unit
+            val meta = leetcode.fetchProblemMeta(slug)
+            when {
+                // Couldn't determine anything (network/rate limit). Keep looking, but remember so
+                // we don't claim the list is exhausted when we simply couldn't check.
+                meta == null -> lookupFailed = true
+                meta.solved || meta.paidOnly -> Unit
+                meta.difficulty == "Easy" -> return slug
             }
         }
         if (lookupFailed) {
-            throw LeetCodeException("Couldn't check problem difficulties — check your connection and try again.")
+            throw LeetCodeException("Couldn't check problems on LeetCode — check your connection and try again.")
         }
         return null
     }
